@@ -21,6 +21,7 @@ class TenantStore:
         self.vouchers: dict[str, dict] = {}      # voucher_id -> {state, voucher_json, entry_id}
         self.entries: dict[str, dict] = {}       # entry_id -> JournalEntry.to_dict()
         self.findings: list[dict] = []
+        self.findings12: list[dict] = []   # 12规则引擎产出（rules12.py）
         self.events = events or EventLog()
         self.exports: list[dict] = []
         if data_dir:
@@ -40,6 +41,7 @@ class TenantStore:
             "vouchers": self.vouchers,
             "entries": self.entries,
             "findings": self.findings,
+            "findings12": self.findings12,
             "exports": self.exports,
             "events": self.events.all(),
         }
@@ -58,6 +60,7 @@ class TenantStore:
             self.vouchers = snap.get("vouchers", {})
             self.entries = snap.get("entries", {})
             self.findings = snap.get("findings", [])
+            self.findings12 = snap.get("findings12", [])
             self.exports = snap.get("exports", [])
             self.events = EventLog(snap.get("events", []))
         except Exception:
