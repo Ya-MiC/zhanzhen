@@ -1,0 +1,8 @@
+{
+  "name": "dsh-plugin-zhanzhen-audit",
+  "version": "0.1.0",
+  "description": "湛箴审计OS DSH插件 - PDF凭证/OCR/序时账/规则/可追溯报告",
+  "main": "src/index.ts",
+  "keywords": ["deepseek-harness", "dsh", "dsh-plugin", "audit"],
+  "license": "MIT"
+}
