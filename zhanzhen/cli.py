@@ -21,7 +21,9 @@ def main(argv=None) -> int:
 
     s = sub.add_parser("serve", help="启动 Web 工作台")
     s.add_argument("--host", default="127.0.0.1")
-    s.add_argument("--port", type=int, default=8000)
+    s.add_argument("--port", type=int,
+        default=int(os.environ.get("ZZ_PORT", "8710")),
+        help="监听端口（默认 8710，可用 ZZ_PORT 环境变量覆盖）")
 
     v = sub.add_parser("verify", help="校验事件哈希链完整性")
 
