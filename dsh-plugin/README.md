@@ -8,7 +8,7 @@
 
 ```bash
 pip install "zhanzhen[web]"
-zhanzhen serve            # http://127.0.0.1:8000
+zhanzhen serve            # http://127.0.0.1:8710（ZZ_PORT 可改）
 ```
 
 然后把本目录作为 DSH 插件装入 Harness。
@@ -31,7 +31,7 @@ zhanzhen serve            # http://127.0.0.1:8000
 export default {
   plugins: {
     'zhanzhen-audit': {
-      baseUrl: 'http://127.0.0.1:8000',
+      baseUrl: 'http://127.0.0.1:8710',
       // token: '...'
     }
   }
