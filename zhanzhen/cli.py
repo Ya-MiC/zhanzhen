@@ -55,7 +55,7 @@ def _demo(outdir: str) -> int:
                 svc.confirm_journal(vid, actor="demo-human")
             except Exception as e:
                 print(f"  [跳过] {vid[:8]}: {e}")
-    print("== 4. 规则引擎 ==")
+    print("== 4. 规则引擎（3条MVP）==")
     findings = svc.run_rules()
     for f in findings:
         print(f"  [{f['severity']}] {f['rule_id']} → {f['explanation'][:60]}")
@@ -70,6 +70,15 @@ def _demo(outdir: str) -> int:
         print("  序时账导出失败:", e)
     iv = svc.verify_integrity()
     print("== 6. 证据链校验 ==", "✔ 完整" if iv["chain_ok"] else f"✘ {iv['errors']}")
+    print("== 4b. 规则引擎（12条完整版）==")
+    try:
+        f12 = svc.run_rules12()
+        for f in f12[:8]:
+            print(f"  [{f['severity']}] {f['rule_id']} {f['title']} → {f['detail'][:56]}")
+        if len(f12) > 8:
+            print(f"  …共 {len(f12)} 条")
+    except Exception as e:
+        print("  12规则跳过:", str(e)[:60])
     print(f"\n打开报告查看: {os.path.abspath(html_path)}")
     return 0
 
