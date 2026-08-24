@@ -1,0 +1,27 @@
+# 湛箴内置规则参数 v1 —— ENGINEERING_SPEC §8.1 三条 MVP 规则
+# 语义权威：action-tree/docs/05_Audit_Rule_Engine.md；本文件只放参数，不放逻辑。
+# 修改参数 = 行为变更：需同步更新 tests/test_rules.py 并在 PR 说明影响。
+rules:
+  - rule_id: R-AMT-001
+    name: 金额一致性（含税≈未税+税额）
+    version: "1.0"
+    severity: high
+    params:
+      tolerance: 0.01        # 元；四舍五入容差
+      require_all_three: false
+  - rule_id: R-DUP-001
+    name: 疑似重复凭证
+    version: "1.0"
+    severity: medium
+    params:
+      amount_tolerance: 0.00
+      date_window_days: 0     # 同日
+      match_on: [date, counterparty, amount_incl_tax, document_no]
+  - rule_id: R-CMP-001
+    name: 凭证完整性
+    version: "1.0"
+    severity: high
+    params:
+      required_fields: [transaction.date, transaction.amount_incl_tax]
+      require_counterparty: true
+      block_confirmed_journal: true   # 不完整不允许确认分录（spec §8.1 规则3）
