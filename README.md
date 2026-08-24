@@ -28,7 +28,7 @@ pip install git+https://github.com/Ya-MiC/zhanzhen.git
 # 一键演示：生成示例账套并跑完整管线，输出报告到指定目录
 zhanzhen demo /tmp/zz_demo          # Linux/macOS；Windows 用 %TEMP%\zz_demo
 
-# 启动 Web 工作台（浏览器打开 http://localhost:8000）
+# 启动 Web 工作台（浏览器打开 http://localhost:8710；换端口见 .env.example 的 ZZ_PORT）
 zhanzhen serve
 ```
 
@@ -47,7 +47,7 @@ zhanzhen demo out/    # 跑通后打开 out/report.html
 ```bash
 cp .env.example .env
 docker compose up --build
-# 打开 http://localhost:8000
+# 打开 http://localhost:8710
 ```
 
 ## 功能总览
