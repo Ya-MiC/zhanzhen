@@ -372,6 +372,65 @@ class AuditService:
     def journal_rows(self) -> list:
         return self.store.journal_rows()
 
+    # ---------- 8. 12条规则（audit-os 语义完整移植）----------
+    def _ledger_lines(self) -> list:
+        """把已确认分录+凭证要素投影成 rules12.LedgerLine 视图。
+
+        科目编码取自行内 account 字段的前4位数字（如 "1403 原材料"→"1403"），
+        映射不到标准科目时为空串——R003 等方向规则自动跳过未映射行。
+        """
+        from .rules12 import LedgerLine
+
+        def _code(account: str) -> str:
+            digits = ""
+            for ch in account or "":
+                if ch.isdigit():
+                    digits += ch
+                else:
+                    break
+            return digits[:4]
+
+        lines = []
+        for eid, e in self.store.entries.items():
+            vj = {}
+            for v in self.store.vouchers.values():
+                if v.get("entry_id") == eid:
+                    vj = v.get("voucher_json") or {}
+                    break
+            txn = vj.get("transaction") or {}
+            cp = (vj.get("counterparty") or {}).get("name") or ""
+            for n, l in enumerate(e.get("lines", []), start=1):
+                lines.append(LedgerLine(
+                    voucher_id=eid,
+                    date=txn.get("date"),
+                    account_code=_code(l.get("account", "")),
+                    debit=float(l.get("debit") or 0),
+                    credit=float(l.get("credit") or 0),
+                    counterparty=cp,
+                    summary=e.get("summary") or "",
+                    locator="voucher=%s#line%d" % (eid[:8], n)))
+        return lines
+
+    def run_rules12(self) -> list:
+        """对全部确认分录跑 12 条规则（audit-os 完整语义）。"""
+        from .rules12 import RuleEngine12
+        lines = self._ledger_lines()
+        if not lines:
+            return []
+        engine = getattr(self, "_engine12", None)
+        if engine is None:
+            engine = RuleEngine12()
+            self._engine12 = engine
+        findings = engine.run_all(lines)
+        dicts = [f.to_dict() for f in findings]
+        existing = {(f["rule_id"], f.get("detail"))
+                     for f in self.store.findings12}
+        for d in dicts:
+            if (d["rule_id"], d["detail"]) not in existing:
+                self.store.findings12.append(d)
+        self.store.save()
+        return self.store.findings12
+
     # ---------- 7. 完整性 ----------
     def verify_integrity(self) -> dict:
         ok, errors = self.store.events.verify_chain()
