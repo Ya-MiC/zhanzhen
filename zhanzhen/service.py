@@ -257,18 +257,29 @@ class AuditService:
 
     # ---------- 5. 规则 ----------
     def run_rules(self) -> list:
-        """对全部已确认凭证跑三条规则；新 finding 追加，保留处置历史。"""
-        targets = [rec for rec in self.store.vouchers.values()
-                    if rec["state"] == JOURNAL_CONFIRMED]
-        if not targets:
+        """对全部已覆核及以后状态的凭证跑三条规则。
+
+        发现风险不以做完分录为前提（spec §8.1：金额一致性在提取三角成立即判）；
+        状态机 RULES_EVALUATED 只允许从 JOURNAL_CONFIRMED 进入，故仅对
+        已确认凭证推进状态；已覆核未确认的凭证只产出 finding，不改状态。
+        新 finding 追加，保留处置历史。
+        """
+        targets_confirmed = [rec for rec in self.store.vouchers.values()
+                              if rec["state"] == JOURNAL_CONFIRMED]
+        targets_reviewed = [rec for rec in self.store.vouchers.values()
+                             if rec["state"] == REVIEWED]
+        pool = [r["voucher_json"] for r in targets_confirmed + targets_reviewed]
+        if not pool:
             return []
-        findings = self.rules.run_all([r["voucher_json"] for r in targets])
+        findings = self.rules.run_all(pool)
         existing_keys = {(f["rule_id"], f["voucher_id"])
                           for f in self.store.findings}
         for f in findings:
             if (f.rule_id, f.voucher_id) not in existing_keys:
                 self.store.findings.append(f.to_dict())
-        for rec in targets:
+        # 状态机 RULES_EVALUATED 只能从 JOURNAL_CONFIRMED 进入；
+        # 已覆核未做账的凭证只产出 finding，不推进状态。
+        for rec in targets_confirmed:
             self._transition(rec, RULES_EVALUATED, "rules.evaluated",
                               {"run_id": str(uuid.uuid4()),
                                 "findings_count": len(findings)})
