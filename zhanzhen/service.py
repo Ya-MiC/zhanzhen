@@ -97,6 +97,7 @@ class AuditService:
             raise AuditError(f"OCR 失败: {e}——已转入人工覆核队列") from e
 
         vj = result.voucher_json
+        rec["voucher_json"] = vj   # OCR 结果必须写回凭证记录（状态与数据同事务推进）
         problems = validate_voucher_json(vj)
         if problems:
             raise AuditError(f"VoucherJSON 校验失败(内部错误): {problems}")
