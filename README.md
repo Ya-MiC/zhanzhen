@@ -60,6 +60,7 @@ docker compose up --build
 | `zhanzhen.voucher` | VoucherJSON v1 结构校验 + 归一化 | specs/voucher-json-v1.schema.json |
 | `zhanzhen.ocr` | OCRProvider 协议：PDF 文本层适配器 / 确定性 Stub / PaddleOCR 可选加载 | ENGINEERING_SPEC §5 |
 | `zhanzhen.rules` | 三条 MVP 规则（金额一致性/疑似重复/完整性），参数来自 rules_builtin.yaml | ENGINEERING_SPEC §8.1 |
+| `zhanzhen.rules12` | **12 条完整规则引擎**（期末突击收入/大额/方向异常/应收占比/毛利率波动/关联方对挂/供应商集中/周末大额/重复交易/短期冲销），重要性水平自动校准，语义完整移植自 [audit-os](https://github.com/Ya-MiC/audit-os) engine.py | audit-os 12 规则 |
 | `zhanzhen.journal` | 分录草稿生成、借贷平衡硬校验、确认后不可变（只能 reversal） | ENGINEERING_SPEC §3.4 |
 | `zhanzhen.report` | HTML 可追溯报告（凭证索引带 SHA-256、风险清单带证据引用） | 总纲 §7 |
 | `zhanzhen.ai_assistant` | OpenAI 兼容端点接入（NVIDIA/OpenRouter 可配），schema 约束 + model_runs 留痕 | ENGINEERING_SPEC §8.2 |
