@@ -318,8 +318,10 @@ class RuleEngine12:
             tgt_amt, tgt_code = round(-l.signed, 2), l.account_code
             for dd, damt, dcode, dl in debits:
                 if damt == tgt_amt and dcode == tgt_code:
-                    gap = (dd - _d(l.date)).days
-                    if 0 <= gap <= win:
+                    # 有意偏离 audit-os 原式(其只认 借在贷后)：常见业务是
+                    # 先入账后红冲，单向窗口会漏报主场景 → 改双向 |gap|<=win
+                    gap = abs((dd - _d(l.date)).days)
+                    if gap <= win:
                         out.append(Finding12("R012", sev_by_amount(tgt_amt, m),
                             "短期全额冲销",
                             l.date + " 贷记 " + format(tgt_amt, ",.2f") + "（"
