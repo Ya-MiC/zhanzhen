@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>湛箴 · 审计作业台</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font-family:"Microsoft YaHei",-apple-system,sans-serif;background:#f5f6f8;color:#1c2733}
+header{background:#0f4c81;color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px}
+header h1{font-size:18px;font-weight:600}
+header .sub{opacity:.75;font-size:12px}
+main{max-width:1200px;margin:20px auto;padding:0 16px}
+.tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.tab{padding:9px 18px;background:#fff;border:1px solid #dfe4ea;border-radius:8px 8px 0 0;cursor:pointer;font-size:14px}
+.tab.on{background:#0f4c81;color:#fff;border-color:#0f4c81}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(15,40,80,.08);margin-bottom:16px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:8px 10px;border-bottom:1px solid #edf0f3;text-align:left}
+th{color:#5a6a7a;font-weight:600;background:#fafbfc}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+button{border:0;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:13px;background:#e8eef5;color:#0f4c81}
+button.pri{background:#0f4c81;color:#fff}
+button.warn{background:#c2410c;color:#fff}
+button:disabled{opacity:.45;cursor:not-allowed}
+.badge{padding:2px 8px;border-radius:9px;font-size:11px;background:#dde3ea;display:inline-block}
+.b-NEEDS_REVIEW{background:#ffe3b3}.b-JOURNAL_CONFIRMED,.b-RULES_EVALUATED,.b-REVIEWED{background:#d4edda}
+.sev-high{color:#b02a37;font-weight:700}.sev-medium{color:#9a6700;font-weight:700}
+.sha{font-family:Consolas,monospace;font-size:11px;color:#667}
+input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-size:13px}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.ok{color:#1a7f37}.bad{color:#b02a37}
+.muted{color:#78909c;font-size:12px}
+.ai-box{background:#f2f7ff;border-left:3px solid #0f4c81;padding:10px 14px;margin-top:10px;font-size:13px;line-height:1.7}
+.empty{text-align:center;color:#90a4ae;padding:26px}
+.drop{border:2px dashed #b8c4d0;border-radius:10px;padding:34px;text-align:center;color:#607d8b;cursor:pointer}
+.drop.hover{background:#eef4fb;border-color:#0f4c81}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+  <h1>湛箴 · 审计作业台</h1><span class="sub">AI 可以推理，但不能偷改证据</span>
+  <span style="flex:1"></span>
+  <span class="sub" v-if="integrity.chain_ok!==null">
+    事件链:<span :class="integrity.chain_ok?'ok':'bad'">{{ integrity.chain_ok?'✔ 完整':'✘ 损坏' }}</span>
+    　{{ integrity.event_count }} 条事件
+  </span>
+</header>
+<main>
+<div class="tabs">
+  <div v-for="(t,i) in tabs" :key="i" class="tab" :class="{on:tab===t.id}" @click="tab=t.id">{{ t.name }}</div>
+</div>
+
+<!-- 凭证箱 -->
+<div v-if="tab==='inbox'" class="card">
+  <div class="row" style="margin-bottom:12px">
+    <button class="pri" @click="pickFile">上传凭证（PDF）</button>
+    <input ref="fileInput" type="file" accept=".pdf" style="display:none" @change="doUpload">
+    <button @click="loadDemo">载入示例账套</button>
+    <span class="muted">上传后自动服务端计算 SHA-256；MVP 支持 PDF 文本层，扫描件见 LIMITATIONS.md</span>
+  </div>
+  <table v-if="vouchers.length">
+    <tr><th>ID</th><th>类型</th><th>日期</th><th>对手方</th><th class="num">含税金额</th><th>状态</th><th>证据哈希</th><th></th></tr>
+    <tr v-for="v in vouchers" :key="v.voucher_id">
+      <td><code>{{ v.voucher_id.slice(0,8) }}</code></td>
+      <td>{{ v.voucher_type||'-' }}</td><td>{{ v.date||'-' }}</td><td>{{ v.counterparty||'-' }}</td>
+      <td class="num">{{ v.amount_incl_tax??'-' }}</td>
+      <td><span class="badge" :class="'b-'+v.state">{{ v.state }}</span></td>
+      <td><span class="sha">{{ (v.sha256||'').slice(0,12) }}…</span></td>
+      <td>
+        <button v-if="v.state==='INGESTED'" @click="runOcr(v)">OCR识别</button>
+        <button v-if="v.state==='NEEDS_REVIEW'||v.state==='JOURNAL_DRAFTED'" @click="openReview(v)">覆核</button>
+      </td>
+    </tr>
+  </table>
+  <div v-else class="empty">还没有凭证——上传 PDF 或点「载入示例账套」</div>
+</div>
+
+<!-- 覆核 -->
+<div v-if="tab==='review'" class="card">
+  <h3 style="margin-bottom:10px">凭证覆核 <span class="muted" v-if="rv.voucher_id">{{ rv.voucher_id.slice(0,8) }}</span></h3>
+  <div v-if="!rv.voucher_json" class="empty">从凭证箱点「覆核」进入</div>
+  <template v-else>
+    <div class="row" v-for="fdef in editableFields" :key="fdef.path" style="margin-bottom:8px">
+      <label style="width:150px;font-size:13px">{{ fdef.label }}</label>
+      <input v-model="rv.edit[fdef.path]" style="flex:1;max-width:280px">
+      <span class="muted">原值: {{ pathGet(rv.voucher_json,fdef.path) ?? '空' }}</span>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button class="pri" @click="saveReview(true)">保存并批准</button>
+      <button @click="tab='inbox'">返回</button>
+      <span class="muted">每次修改都会写入 voucher.field_corrected 哈希链事件——谁改的、改了什么、原值是什么，永久留痕</span>
+    </div>
+  </template>
+</div>
+
+<!-- 分录 -->
+<div v-if="tab==='journal'" class="card">
+  <h3 style="margin-bottom:10px">分录草稿与确认</h3>
+  <div v-if="!je.entry_id" class="empty">先在覆核页批准凭证，然后生成/调整分录</div>
+  <template v-else>
+    <table>
+      <tr><th>科目</th><th class="num">借方</th><th class="num">贷方</th></tr>
+      <tr v-for="(l,i) in je.lines" :key="i">
+        <td><input v-model="l.account" style="width:100%"></td>
+        <td class="num"><input v-model.number="l.debit" type="number" step="0.01" style="width:110px;text-align:right"></td>
+        <td class="num"><input v-model.number="l.credit" type="number" step="0.01" style="width:110px;text-align:right"></td>
+      </tr>
+    </table>
+    <div class="row" style="margin-top:12px">
+      <button class="pri" :disabled="drCrDiff!==0" @click="adjustAndConfirm">
+        {{ drCrDiff===0 ? '确认分录（借贷平衡 ✔）' : '借贷不平 '+drCrDiff+' 元，不能确认' }}
+      </button>
+      <span class="muted">lines_hash 会锁定本次行内容；确认后不可改，只能红字冲销</span>
+    </div>
+  </template>
+</div>
+
+<!-- 风险 -->
+<div v-if="tab==='findings'" class="card">
+  <div class="row" style="margin-bottom:12px">
+    <button class="pri" @click="runRules">运行三条规则</button>
+    <button @click="explainAi" :disabled="!findings.length">AI 解释选中风险</button>
+    <select v-model="selFinding" style="max-width:420px">
+      <option value="">— 选择 finding —</option>
+      <option v-for="(f,i) in findings" :key="i" :value="i">
+        [{{ f.rule_id }}] {{ f.explanation.slice(0,30) }}
+      </option>
+    </select>
+  </div>
+  <table v-if="findings.length">
+    <tr><th>规则</th><th>严重度</th><th>解释</th><th>证据</th><th>处置</th></tr>
+    <tr v-for="(f,i) in findings" :key="i">
+      <td><code>{{ f.rule_id }}</code></td>
+      <td><span :class="'sev-'+f.severity">{{ f.severity }}</span></td>
+      <td>{{ f.explanation }}</td>
+      <td><span class="sha">{{ evidenceShort(f) }}</span></td>
+      <td>
+        <button @click="dispose(i,'accepted')">属实</button>
+        <button @click="dispose(i,'rejected')">误报</button>
+      </td>
+    </tr>
+  </table>
+  <div v-else class="empty">尚未运行规则或无命中</div>
+  <div v-if="aiAnswer" class="ai-box"><b>AI 助手：</b>{{ aiAnswer.answer }}
+    <div v-if="aiAnswer.account_suggestions&&aiAnswer.account_suggestions.length" style="margin-top:6px">
+      科目建议：<span v-for="(s,i) in aiAnswer.account_suggestions" :key="i">· {{ s.account }}（{{ s.reason }}）</span></div>
+    <div v-if="aiAnswer.uncertainties&&aiAnswer.uncertainties.length" class="muted" style="margin-top:4px">
+      不确定性：{{ aiAnswer.uncertainties.join('；') }}</div>
+  </div>
+</div>
+
+<!-- 报告 -->
+<div v-if="tab==='report'" class="card">
+  <h3 style="margin-bottom:10px">导出</h3>
+  <div class="row">
+    <button class="pri" @click="dl('/v1/exports/report')">导出可追溯 HTML 报告</button>
+    <button @click="dl('/v1/exports/journal-excel')">导出序时账 Excel/CSV</button>
+    <span class="muted">报告带 template_version / 数据截止时间 / 全量 SHA-256 索引；序时账导出前强制校验借贷平衡</span>
+  </div>
+  <p class="muted" style="margin-top:14px">
+  ⚠ 报告是分析初稿，不构成审计意见；签字权属于人。每条结论可点回原始凭证哈希。</p>
+</div>
+</main>
+</div>
+
+<script>
+const {createApp}=Vue;
+createApp({
+  data(){return{
+    tab:'inbox',
+    tabs:[{id:'inbox',name:'凭证箱'},{id:'review',name:'覆核'},{id:'journal',name:'分录'},
+          {id:'findings',name:'风险'},{id:'report',name:'报告'}],
+    vouchers:[],
+    rv:{voucher_id:null,voucher_json:null,edit:{}},
+    je:{entry_id:null,lines:[]},
+    findings:[],selFinding:'',aiAnswer:null,
+    integrity:{chain_ok:null,event_count:0},
+    editableFields:[
+      {path:'transaction.date',label:'交易日期'},
+      {path:'transaction.amount_incl_tax',label:'含税金额'},
+      {path:'transaction.amount_excl_tax',label:'未税金额'},
+      {path:'transaction.tax_amount',label:'税额'},
+      {path:'counterparty.name',label:'对手方名称'},
+      {path:'voucher_type',label:'凭证类型'}],
+  }},
+  computed:{
+    drCrDiff(){
+      const d=this.je.lines.reduce((s,l)=>s+(+l.debit||0),0);
+      const c=this.je.lines.reduce((s,l)=>s+(+l.credit||0),0);
+      return +(d-c).toFixed(2);
+    }
+  },
+  methods:{
+    async req(url,opt){const r=await fetch(url,opt);
+      const ct=r.headers.get('content-type')||'';
+      if(!r.ok){let m='HTTP '+r.status;
+        try{if(ct.includes('json')){const j=await r.json();m=j.message||j.detail||m}}catch(e){}
+        throw new Error(m)}
+      if(ct.includes('json'))return r.json();return r},
+    async refresh(){this.vouchers=await this.req('/v1/vouchers');
+      try{this.integrity=await this.req('/v1/integrity')}catch(e){}},
+    async pickFile(){this.$refs.fileInput.click()},
+    async doUpload(ev){const f=ev.target.files[0];if(!f)return;
+      const fd=new FormData();fd.append('file',f);
+      await this.req('/v1/vouchers/upload',{method:'POST',body:fd});
+      ev.target.value='';this.refresh()},
+    async loadDemo(){await this.req('/v1/demo/load',{method:'POST'});
+      for(const v of this.vouchers.map(x=>x.voucher_id)){}
+      this.refresh()},
+    async runOcr(v){try{await this.req(`/v1/vouchers/${v.voucher_id}/ocr`,{method:'POST'})}
+      catch(e){alert('OCR失败: '+e.message)}this.refresh()},
+    async openReview(v){
+      const rec=await this.req('/v1/vouchers/'+v.voucher_id);
+      this.rv={voucher_id:v.voucher_id,voucher_json:rec.voucher_json,edit:{}};
+      this.tab='review'},
+    async saveReview(approve){
+      await this.req(`/v1/vouchers/${this.rv.voucher_id}/review`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({corrections:this.rv.edit,approve:true})});
+      // 尝试生成分录草稿
+      try{this.je=await this.req(`/v1/vouchers/${this.rv.voucher_id}/journal-draft`,{method:'POST'})}
+      catch(e){this.je={entry_id:null,lines:[]}}
+      this.tab='journal';this.refresh()},
+    async adjustAndConfirm(){
+      await this.req(`/v1/vouchers/${this.rv.voucher_id}/journal-adjust`,{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({lines:this.je.lines})});
+      await this.req(`/v1/vouchers/${this.rv.voucher_id}/journal-confirm`,{method:'POST'});
+      alert('分录已确认并锁定');this.tab='findings';this.refresh()},
+    async runRules(){const j=await this.req('/v1/rule-runs',{method:'POST'});
+      this.findings=j.findings||[]},
+    evidenceShort(f){return (f.evidence_refs||[]).map(e=>(e.file_sha256||'').slice(0,10)+'…').join(' ')},
+    async dispose(i,d){await this.req(`/v1/findings/${i}/dispose`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({disposition:d})});
+      this.findings[i].disposition=d},
+    async explainAi(){if(this.selFinding==='')return alert('先选择一条 finding');
+      const f=this.findings[+this.selFinding];
+      try{this.aiAnswer=await this.req('/v1/ai/explain-findings',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({voucher_id:f.voucher_id})})}
+      catch(e){alert('AI 助手不可用: '+e.message)}},
+    pathGet(obj,path){return path.split('.').reduce((o,k)=>o&&o[k],obj)??null},
+    async dl(u){window.open(u,'_blank')},
+  },
+  mounted(){this.refresh()}
+}).mount('#app');
+</script>
+</body>
+</html>
