@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zhanzhen"
+version = "0.1.0"
+description = "湛箴 ZhanZhen Audit OS - 中小企业凭证到报告的审计作业程序（可追溯证据链）"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Ya-MiC"}]
+dependencies = [
+  "pydantic>=2.5",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+web = ["fastapi>=0.110", "uvicorn[standard]>=0.29", "python-multipart>=0.0.9"]
+excel = ["openpyxl>=3.1"]
+pdf = ["pdfplumber>=0.11", "pypdf>=4.0"]
+ocr = ["paddleocr>=2.7", "paddlepaddle>=2.6"]
+all = ["zhanzhen[web,excel,pdf]"]
+dev = ["pytest>=8.0", "httpx>=0.27", "zhanzhen[all]"]
+
+[project.scripts]
+zhanzhen = "zhanzhen.cli:main"
+
+[tool.setuptools]
+packages = ["zhanzhen"]
+include-package-data = true

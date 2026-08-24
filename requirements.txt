@@ -1,0 +1,9 @@
+# 完整安装（Web 版）
+pydantic>=2.5
+PyYAML>=6.0
+fastapi>=0.110
+uvicorn[standard]>=0.29
+python-multipart>=0.0.9
+openpyxl>=3.1
+pdfplumber>=0.11
+pypdf>=4.0
