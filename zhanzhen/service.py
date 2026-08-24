@@ -394,17 +394,17 @@ class AuditService:
         """
         samples = [
             ("invoice-001.txt", "vat_invoice",
-             "docno=INV-2026-0001\\ndate=2026-07-31\\nexcl=10000\\ntax=1300\\nincl=11300\\ncounterparty=华信钢材贸易有限公司\\n"),
+             "docno=INV-2026-0001\ndate=2026-07-31\nexcl=10000\ntax=1300\nincl=11300\ncounterparty=华信钢材贸易有限公司\n"),
             ("invoice-002.txt", "vat_invoice",
-             "docno=INV-2026-0002\\ndate=2026-08-18\\nexcl=5000\\ntax=650\\nincl=5650\\ncounterparty=蓝天办公用品有限公司\\n"),
+             "docno=INV-2026-0002\ndate=2026-08-18\nexcl=5000\ntax=650\nincl=5650\ncounterparty=蓝天办公用品有限公司\n"),
             ("expense-003.txt", "expense_receipt",
-             "docno=EXP-0803\\ndate=2026-08-03\\nexcl=200\\ntax=0\\nincl=200\\ncounterparty=程伟出租车队\\n"),
+             "docno=EXP-0803\ndate=2026-08-03\nexcl=200\ntax=0\nincl=200\ncounterparty=程伟出租车队\n"),
             ("invoice-004-dup.txt", "vat_invoice",
-             "docno=INV-2026-0002B\\ndate=2026-08-18\\nexcl=5000\\ntax=650\\nincl=5650\\ncounterparty=蓝天办公用品有限公司\\n"),
+             "docno=INV-2026-0002B\ndate=2026-08-18\nexcl=5000\ntax=650\nincl=5650\ncounterparty=蓝天办公用品有限公司\n"),
             ("bank-005.txt", "bank_receipt",
-             "docno=BK-8812\\ndate=2026-08-20\\nexcl=80000\\ntax=10400\\nincl=90400\\ncounterparty=恒瑞电子股份有限公司\\n"),
+             "docno=BK-8812\ndate=2026-08-20\nexcl=80000\ntax=10400\nincl=90400\ncounterparty=恒瑞电子股份有限公司\n"),
             ("invoice-006-bad.txt", "vat_invoice",
-             "docno=INV-2026-0006\\ndate=2026-08-21\\nexcl=3000\\ntax=390\\nincl=3390.05\\ncounterparty=宏图五金交电商行\\n"),
+             "docno=INV-2026-0006\ndate=2026-08-21\nexcl=3000\ntax=390\nincl=3390.05\ncounterparty=宏图五金交电商行\n"),
         ]
         ids = []
         for name, vtype, text in samples:
