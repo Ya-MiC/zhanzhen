@@ -1,9 +1,10 @@
 services:
   api:
     build: .
-    ports: ["8000:8000"]
+    ports: ["${ZZ_PORT:-8710}:8710"]
     environment:
       ZZ_DATA_DIR: /data
+      ZZ_PORT: 8710
       ZZ_TENANT_ID: ${ZZ_TENANT_ID:-demo-tenant}
       ZZ_AI_BASE_URL: ${ZZ_AI_BASE_URL:-}
       ZZ_AI_API_KEY: ${ZZ_AI_API_KEY:-}
