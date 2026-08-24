@@ -1,5 +1,7 @@
-# 湛箴 ZhanZhen Audit OS — 凭证到报告的完整审计作业程序
+# 🐙 湛箴 OctopusZhen — 凭证到报告的完整审计作业程序
 
+> **品牌**：OctopusZhen（OZ）——八爪抓证据，一脑管风险。定名与图标设计见 [docs/BRAND_OCTOPUS.md](docs/BRAND_OCTOPUS.md)
+> **版本**：v0.1.0 · Phase-0 完成 · 发布路线见 [VERSIONING.md](VERSIONING.md)
 > 上游依据：[Ya-MiC/action-tree](https://github.com/Ya-MiC/action-tree) 总纲 §26 MVP 与《ENGINEERING_SPEC》工程规范。
 > 定位：上传 PDF/图片凭证 → 图文识别 → 凭证覆核 → 序时账分录 → 规则检查 → **可追溯审计报告**。
 > 铁律：**AI 可以推理，但不能偷改证据** —— 所有证据入库即锁 SHA-256，所有状态迁移追加哈希链事件。
