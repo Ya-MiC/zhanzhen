@@ -7,5 +7,6 @@ COPY rules_builtin.yaml ./
 RUN pip install --no-cache-dir ".[web,excel,pdf]"
 ENV ZZ_DATA_DIR=/data
 VOLUME ["/data"]
-EXPOSE 8000
-CMD ["uvicorn", "zhanzhen.webapp:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV ZZ_PORT=8710
+EXPOSE 8710
+CMD ["sh", "-c", "uvicorn zhanzhen.webapp:app --host 0.0.0.0 --port ${ZZ_PORT:-8710}"]
