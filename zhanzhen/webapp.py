@@ -140,6 +140,12 @@ def findings():
     return get_svc().store.findings
 
 
+@app.get("/v1/findings12")
+def findings12():
+    """12 条完整规则引擎结果（audit-os 语义）。"""
+    return get_svc().run_rules12()
+
+
 @app.post("/v1/findings/{index}/dispose")
 def dispose(index: int, body: dict):
     d = (body or {}).get("disposition", "")
