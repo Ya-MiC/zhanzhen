@@ -88,5 +88,32 @@ class TenantStore:
                 if v["state"] in ("RULES_EVALUATED", "EXPORTED", "ARCHIVED")
                 or v["state"] in ("JOURNAL_CONFIRMED",)]
 
+    def journal_rows(self) -> list:
+        """序时账行集：确认分录(+冲销) x 行，附凭证要素与证据哈希。
+
+        spec 9.1 导出物1 的数据源；report 与 excel 共用。
+        """
+        rows = []
+        for eid, e in self.entries.items():
+            vj = {}
+            for v in self.vouchers.values():
+                if v.get("entry_id") == eid:
+                    vj = v.get("voucher_json") or {}
+                    break
+            txn = vj.get("transaction") or {}
+            doc_no = txn.get("document_no") or eid[:8]
+            for l in e.get("lines", []):
+                rows.append({
+                    "日期": txn.get("date") or "",
+                    "凭证号": doc_no,
+                    "摘要": e.get("summary") or "",
+                    "科目": l.get("account", ""),
+                    "借方": f"{float(l.get('debit') or 0):.2f}",
+                    "贷方": f"{float(l.get('credit') or 0):.2f}",
+                    "附件SHA256": (vj.get("document") or {}).get("sha256", ""),
+                    "状态": e.get("status", ""),
+                })
+        return rows
+
     def all_voucher_jsons(self) -> list[dict]:
         return [v["voucher_json"] for v in self.vouchers.values()]
