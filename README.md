@@ -97,6 +97,11 @@ docker compose up --build
 - [ARCHITECTURE.md](ARCHITECTURE.md) — 架构、模块图、specs↔代码映射表
 - [LIMITATIONS.md](LIMITATIONS.md) — **做不到什么、需要人类帮什么**（诚实清单）
 - [ACKNOWLEDGEMENTS.md](ACKNOWLEDGEMENTS.md) — 致谢与开源协议（我们站在谁的肩膀上）
+- [docs/OCR_STRATEGY.md](docs/OCR_STRATEGY.md) — 手机 OCR 三级降级链（系统级→PaddleLite→服务端）
+- [docs/MOBILE_WORKFLOW.md](docs/MOBILE_WORKFLOW.md) — 手机拍照→工作台全流程
+- [docs/PRODUCT_TIERS.md](docs/PRODUCT_TIERS.md) — 免费/专业两档切分 + 注册会计师签发边界
+- [docs/ASSETS_AND_LICENSE.md](docs/ASSETS_AND_LICENSE.md) — 资产分层：引擎 MIT / 配方闭源 / 数据用户所有
+- [docs/DOC_MAP.md](docs/DOC_MAP.md) — 全部文档蓝图与路径索引（18个月规划）
 - [action-tree 总纲](https://github.com/Ya-MiC/action-tree) — 为什么做、做什么（人类亲笔）
 
 ## 许可
