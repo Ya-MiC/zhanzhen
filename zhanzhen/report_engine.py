@@ -133,8 +133,8 @@ def render(ctx: ReportContext) -> str:
                              '<td>{{r["贷方"]}}</td></tr>', jr)
         body = body.replace("<li>", "<ul><li>", 1) if "<li>" in body else body
         body = body.replace("</li>{% endfor %}", "</li></ul>")
-        body += f"
-<ul class='findings'>{rows}</ul>" if rows else ""
+        if rows:
+            body = body + "<ul class='findings'>" + rows + "</ul>"
         return body
 
 
