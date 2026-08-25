@@ -83,6 +83,19 @@ async def upload_voucher(file: UploadFile = File(...),
     return {"voucher_id": vid, "state": "INGESTED", **ev}
 
 
+# ---------- 账套导入 ----------
+@app.post("/v1/import/ledger")
+async def import_ledger(file: UploadFile = File(...)):
+    """上传鼎信诺/金蝶导出的账套文件（multipart file）。
+
+    逐行凭证走完整管线并确认分录；返回
+    {format, imported, skipped, errors}——单笔失败不中断整批。
+    xlsx 解析需可选依赖：pip install 'zhanzhen[excel]'。
+    """
+    content = await file.read()
+    return get_svc().import_ledger(content)
+
+
 # ---------- OCR ----------
 @app.post("/v1/vouchers/{voucher_id}/ocr")
 def run_ocr(voucher_id: str, provider: str = "auto", router: str = "manual"):
