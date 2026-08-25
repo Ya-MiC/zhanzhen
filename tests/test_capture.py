@@ -13,7 +13,7 @@ class TestCaptureBatch(unittest.TestCase):
         self.svc = AuditService(tenant_id="cap", data_dir=tempfile.mkdtemp())
 
     def test_capture_pack_ingest_recomputes_hash(self):
-        content = b"date=2026-08-25\nincl=990\ncounterparty=测试商户\n"
+        content = "date=2026-08-25\nincl=990\ncounterparty=测试商户\n".encode("utf-8")
         pack = {"items": [{
             "filename": "photo-1.jpg", "content_b64": base64.b64encode(content).decode(),
             "captured_at": "2026-08-25T10:00:00Z", "note": "午餐发票"}]}
