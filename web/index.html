@@ -59,6 +59,8 @@ input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-siz
     <button class="pri" @click="pickFile">上传凭证（PDF）</button>
     <input ref="fileInput" type="file" accept=".pdf" style="display:none" @change="doUpload">
     <button @click="loadDemo">载入示例账套</button>
+    <input ref="packInput" type="file" accept=".json" style="display:none" @change="importPack">
+    <button @click="$refs.packInput.click()">📥 收手机采集包</button>
     <span class="muted">上传后自动服务端计算 SHA-256；MVP 支持 PDF 文本层，扫描件见 LIMITATIONS.md</span>
   </div>
   <table v-if="vouchers.length">
@@ -207,9 +209,15 @@ createApp({
       const fd=new FormData();fd.append('file',f);
       await this.req('/v1/vouchers/upload',{method:'POST',body:fd});
       ev.target.value='';this.refresh()},
-    async loadDemo(){await this.req('/v1/demo/load',{method:'POST'});
-      for(const v of this.vouchers.map(x=>x.voucher_id)){}
-      this.refresh()},
+    async loadDemo(){await this.req('/v1/demo/load',{method:'POST'});this.refresh()},
+    async importPack(ev){const f=ev.target.files[0];if(!f)return;
+      try{const pack=JSON.parse(await f.text());
+        if(pack.app!=='zhanzhen-capture')return alert('不是湛箴采集包');
+        const r=await this.req('/v1/vouchers/capture-batch',{method:'POST',
+          headers:{'Content-Type':'application/json'},body:JSON.stringify(pack)});
+        alert('已收入 '+r.ingested+' 张凭证，逐张点 OCR 识别');this.refresh()}
+      catch(e){alert('采集包导入失败: '+e.message)}
+      ev.target.value=''},
     async runOcr(v){try{await this.req(`/v1/vouchers/${v.voucher_id}/ocr`,{method:'POST'})}
       catch(e){alert('OCR失败: '+e.message)}this.refresh()},
     async openReview(v){
