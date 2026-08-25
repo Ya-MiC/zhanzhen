@@ -454,6 +454,37 @@ class AuditService:
     def journal_rows(self) -> list:
         return self.store.journal_rows()
 
+    # ---------- 报告 v2（按甲方分型，专业版功能）----------
+    def export_report_v2(self, audience: str = "boss",
+                          out_dir: Optional[str] = None) -> str:
+        """按受众渲染报告并落盘。audience: bank|gov|boss|firm|cross。"""
+        from .report_engine import ReportContext, render, InvalidAudience
+        job_id = str(uuid.uuid4())
+        out_dir = out_dir or os.path.join(self.data_dir, "exports")
+        os.makedirs(out_dir, exist_ok=True)
+        ctx = ReportContext(
+            tenant_id=self.tenant_id,
+            period=_now_iso()[:10],
+            findings_mvp=list(self.store.findings),
+            findings_12=list(self.store.findings12),
+            journal_rows=self.journal_rows(),
+            style_samples=list(getattr(self.store, "style_samples", [])),
+            audience=audience)
+        html_doc = render(ctx)
+        path = os.path.join(out_dir, f"report-{audience}-{job_id[:8]}.html")
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(html_doc)
+        self.store.exports.append({
+            "export_job_id": job_id, "kind": f"report-v2:{audience}",
+            "template_version": TEMPLATE_VERSION + "-v2/" + audience,
+            "generated_at": _now_iso(), "path": path})
+        for rec in self.store.vouchers.values():
+            if rec["state"] == RULES_EVALUATED:
+                self._transition(rec, EXPORTED, "export.completed",
+                    {"export_job_id": job_id, "audience": audience})
+        self.store.save()
+        return path
+
     # ---------- 8. 12条规则（audit-os 语义完整移植）----------
     def _ledger_lines(self) -> list:
         """把已确认分录+凭证要素投影成 rules12.LedgerLine 视图。
