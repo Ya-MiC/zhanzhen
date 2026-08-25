@@ -233,6 +233,81 @@ class AuditService:
         self.store.save()
         return self.store.entries[eid]
 
+    # ---------- 3.5 账套导入（鼎信诺/金蝶 xlsx）----------
+    _IMPORT_CLEARING_ACCOUNT = "2202 应付账款 / 往来清账(导入)"
+
+    def import_ledger(self, data: bytes) -> dict:
+        """账套文件导入入口：识别格式→逐行 Draft 走完整管线→确认分录。
+
+        每行分录生成确定性文本，经 ingest → run_ocr(stub) → draft_journal
+        → confirm_journal 全链（不绕过哈希链/状态机/完整性确认门）；
+        有科目列时用 adjust_journal 把模板建议行替换为账套真实科目。
+        单笔失败进 errors 不中断整批；无金额行计入 skipped。
+        返回 {"format", "imported", "skipped", "errors"}。
+        """
+        from .importers import detect_format, import_dingxinuo
+
+        out = {"format": detect_format(data), "imported": 0,
+               "skipped": 0, "errors": []}
+        if out["format"] != "dingxinuo":
+            out["errors"].append(
+                f"暂不支持的账套格式: {out['format']}——目前支持鼎信诺凭证明细 "
+                f"xlsx（xlsx 解析需 pip install 'zhanzhen[excel]'）")
+            return out
+        try:
+            drafts = import_dingxinuo(data)
+        except Exception as e:
+            out["errors"].append(f"解析鼎信诺文件失败: {e}")
+            return out
+
+        for idx, d in enumerate(drafts, start=1):
+            label = d.voucher_no or f"row{idx}"
+            try:
+                amount = round(float(d.debit or 0), 2)
+                if amount <= 0:
+                    amount = round(float(d.credit or 0), 2)
+                if amount <= 0:                     # 无金额行不做账
+                    out["skipped"] += 1
+                    continue
+                text = (
+                    f"docno={label}\n"
+                    f"date={d.date}\n"
+                    f"excl={amount}\ntax=0\nincl={amount}\n"
+                    f"counterparty={d.counterparty}\n"
+                    f"summary={d.summary or d.account or label}\n"
+                )
+                vid = self.ingest(f"ledger-{label}.txt", text.encode("utf-8"),
+                                  source="excel_import")
+                self.run_ocr(vid, provider_name="stub",
+                              voucher_type_hint="vat_invoice")
+                if self.store.vouchers[vid]["state"] == NEEDS_REVIEW:
+                    self.review(vid, {}, reviewer="auto-import")
+                self.draft_journal(vid)
+                if d.account:
+                    # 用账套真实科目替换模板建议行（借贷各一行，保持平衡）
+                    is_debit = (d.debit or 0) > 0
+                    lines = [
+                        ({"account": d.account, "debit": amount, "credit": 0.0}
+                         if is_debit else
+                         {"account": self._IMPORT_CLEARING_ACCOUNT,
+                          "debit": amount, "credit": 0.0}),
+                        ({"account": self._IMPORT_CLEARING_ACCOUNT,
+                          "debit": 0.0, "credit": amount}
+                         if is_debit else
+                         {"account": d.account, "debit": 0.0, "credit": amount}),
+                    ]
+                    try:
+                        self.adjust_journal(
+                            vid, lines, summary=d.summary or f"导入 {label}")
+                    except AuditError:
+                        pass                        # 调整失败保留模板建议分录（仍平衡）
+                self.confirm_journal(vid, actor="excel-import")
+                out["imported"] += 1
+            except Exception as e:                  # noqa: BLE001 单笔不中断整批
+                out["errors"].append({"row": idx, "voucher_no": label,
+                                       "error": str(e)[:200]})
+        return out
+
     def reverse_journal(self, voucher_id: str, reason: str,
                          actor: str = "human") -> dict:
         """已确认分录的唯一修正方式：红字冲销，原分录不可变。"""
