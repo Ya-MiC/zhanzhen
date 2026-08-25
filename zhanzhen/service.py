@@ -72,13 +72,20 @@ class AuditService:
 
     # ---------- 2. OCR ----------
     def run_ocr(self, voucher_id: str, provider_name: str = "auto",
-                 voucher_type_hint: str = "unknown") -> dict:
+                 voucher_type_hint: str = "unknown",
+                 provider_instance=None) -> dict:
+        """跑 OCR。provider_instance 允许调用方（webapp 的 router=auto）注入
+        ocr_router.OcrRouter 选出的引擎实例；为空时按 provider_name 走 _select_provider。"""
         rec = self._get(voucher_id)
         assert_transition(rec["state"], OCR_QUEUED)      # INGESTED -> OCR_QUEUED
         self._transition(rec, OCR_QUEUED, "voucher.ocr_queued",
-                          {"provider": provider_name})
+                          {"provider": provider_instance.name
+                           if provider_instance is not None else provider_name})
         try:
-            provider = self._select_provider(rec.get("filename", ""), provider_name)
+            if provider_instance is not None:
+                provider = provider_instance
+            else:
+                provider = self._select_provider(rec.get("filename", ""), provider_name)
             result = provider.process(
                 FileRef(file_id=voucher_id,
                         sha256=rec["voucher_json"]["document"]["sha256"],
