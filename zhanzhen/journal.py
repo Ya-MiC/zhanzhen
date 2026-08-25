@@ -42,6 +42,10 @@ class JournalError(Exception):
     pass
 
 
+# 提取三角不平时的显式差额行科目（草稿建议，需人工调整归属）
+_DIFF_ACCOUNT = "1901 待处理差额(提取三角不平，需人工调整)"
+
+
 @dataclass
 class JournalLine:
     account: str
@@ -118,6 +122,9 @@ def suggest_entry(voucher_json: dict) -> Optional[JournalEntry]:
     """按凭证类型给出分录草稿建议（永远 draft，永远要人看）。
 
     金額取 VoucherJSON 三角歸一化後的值；缺金額返回 None（不猜）。
+    提取三角不平（excl+tax≠incl 超容差）時：不改動任何提取值，
+    追加一條顯式「待處理差額」行保持借貸平衡——憑證層數據保持原樣，
+    R-AMT-001 等規則仍會在憑證層命中該風險（覆核批准後可繼續做帳）。
     """
     vtype = voucher_json.get("voucher_type")
     txn = voucher_json.get("transaction") or {}
@@ -141,5 +148,14 @@ def suggest_entry(voucher_json: dict) -> Optional[JournalEntry]:
         lines.append(JournalLine(template[1]["account"], credit=round(excl + 1e-9, 2)))
     else:
         return None  # unknown 类型不瞎猜科目
+
+    # 提取三角不平的显式差额行（借贷必须平衡是硬约束，但草稿不得篡改提取值）
+    dr = round(sum(l.debit for l in lines), 2)
+    cr = round(sum(l.credit for l in lines), 2)
+    diff = round(dr - cr + 1e-9, 2)
+    if abs(diff) > 0.001:
+        # 借方合计偏小（diff<0）→ 补借方差额行；反之补贷方差额行
+        lines.append(JournalLine(_DIFF_ACCOUNT,
+                                  debit=max(-diff, 0.0), credit=max(diff, 0.0)))
     return JournalEntry(tenant_id="", voucher_file_id=file_id, lines=lines,
                          summary=txn.get("summary") or f"{vtype}")
