@@ -51,6 +51,23 @@ docker compose up --build
 # 打开 http://localhost:8710
 ```
 
+## 双端架构（Android + Windows）
+
+| 端 | 仓库 | 职责（ENGINEERING_SPEC §6） |
+|---|---|---|
+| 📱 Android 采集端 | [audit-os-mobile](https://github.com/Ya-MiC/audit-os-mobile) | **拍照→本地队列→导出采集包**，不做重计算 |
+| 💻 Windows 工作台 | 本仓库 | 批量导入采集包/拖放 PDF → OCR → 覆核 → 序时账 → 规则 → 报告 |
+
+工作流：手机拍凭证 → 导出 `zhanzhen-capture-*.json` → 工作台
+`POST /v1/vouchers/capture-batch` 一键收包 → 后续全流程。
+
+## 报告写作支持
+
+- **按甲方分型**：银行/政府/企业老板/事务所/跨境五类版式差异见 [docs/REPORT_KNOWLEDGE.md](docs/REPORT_KNOWLEDGE.md)
+- **风格学习**：上传你自己写过的历史报告（`POST /v1/reports/upload-style-sample`），AI 助手按你的笔法起草
+- **公开范本地图**：SEC EDGAR / 巨潮年报审计报告 / PCAOB / 中注协准则 —— 免费资源清单同上文档
+- **导出**：HTML（交互追溯，已上线）→ PDF/docx 模板（v0.5-beta，weasyprint/docxtpl）
+
 ## 功能总览
 
 | 模块 | 能力 | 上游规范 |
