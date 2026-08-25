@@ -92,28 +92,31 @@ docs/
 | `docs/specs/OCR_PROVIDER_CONTRACT.md` | OCR Provider 接口定义、错误码、降级协议 | 📝 进行中 | zhanzhen/ocr.py | OCR Owner |
 | `docs/specs/API_CONTRACT_V1.md` | OpenAPI 3.1 规范，前端/移动端/三方集成契约 | ⏳ 待写 | server 生成 | 后端 Owner |
 | `docs/user/QUICK_START.md` | 5 分钟跑通：安装→录入→覆核→报告 | ⏳ 待写 | 所有核心功能 | 产品/文档 |
-| `docs/user/INSTALLATION.md` | 详细安装：pip/uv/Docker/APK/源码构建/Windows 绿色版 | ⏳ 待写 | 打包发布流程 | 发布工程师 |
+| `docs/user/INSTALL.md` | 详细安装：pip/源码/Docker 三路 + extras 说明 + 故障排查 | ✅ 已有 | 打包发布流程 | 发布工程师 |
 | `docs/user/MOBILE_WORKFLOW.md` | **手机拍照→采集包→工作台导入→OCR→分类→底稿**全链路 | 📝 进行中 | OCR_STRATEGY.md, zhanzhen/ocr.py | 移动端 Owner |
+| `docs/MOBILE_WORKFLOW_CHECKLIST.md` | 手机采集可打印检查清单（拍摄/打包/收包/故障/签认栏；字段名以 capture-batch 实现为准） | ✅ 已有 | MOBILE_WORKFLOW.md, webapp.py | 移动端 Owner |
 | `docs/user/VOUCHER_GUIDE.md` | 凭证手工/CSV/OCR 录入、分类模板、覆核标记、批量操作 | ⏳ 待写 | 核心功能 | 产品 |
 | `docs/user/REPORT_GUIDE.md` | 报告模板选择、AI 起草、导出 PDF/Word/HTML、版本管理 | ⏳ 待写 | 专业模板包 | 产品 |
 | `docs/user/RULES_GUIDE.md` | 3+12 规则逐条解释、阈值调整、自定义规则 DSL 示例 | ⏳ 待写 | RULE_DSL_V1.md | 规则引擎 Owner |
-| `docs/user/FAQ.md` | 分类 FAQ：安装/OCR/同步/计费/合规/数据导出 | ⏳ 待写 | 收集真实问题 | 客服/产品 |
+| `docs/user/FAQ.md` | 分类 FAQ：安装/OCR/AI/存储/Web 作业/合规（18 问） | ✅ 已有 | 收集真实问题 | 客服/产品 |
 | `docs/user/TROUBLESHOOTING.md` | 报错码对照表、日志分析、网络/权限/存储常见故障 | ⏳ 待写 | 错误码规范 | QA |
-| `docs/user/CHANGELOG.md` | 用户可见变更（从 VERSIONING.md 衍生，去技术细节） | ⏳ 待写 | VERSIONING.md | 发布工程师 |
+| `docs/user/CHANGELOG.md` | 用户可见变更（Keep-a-Changelog，v0.1.0 全量功能） | ✅ 已有 | VERSIONING.md | 发布工程师 |
+| `docs/user/CONFIG.md` | ZZ_* 配置逐项：作用/默认值/改动影响/安全提示 | ✅ 已有 | .env.example, 源码消费点 | 维护者 |
+| `docs/user/USER_GUIDE.md` | 上传→OCR→覆核→分录→规则→导出全流程操作手册（含 API 等价调用） | ✅ 已有 | webapp.py, web/index.html | 产品 |
 | `docs/dev/ARCHITECTURE.md` | 系统全景：模块/数据流/部署/技术选型/非功能性指标 | ✅ 已有 | — | 架构师 |
-| `docs/dev/CONTRIBUTING.md` | 分支策略、Commit 规范、PR 模板、测试要求、Code Review 清单 | ⏳ 待写 | — | 维护者 |
+| `docs/dev/CONTRIBUTING.md` | 分支策略、Commit 规范、PR 模板、核心域零依赖测试要求、ADR 触发条件 | ✅ 已有 | — | 维护者 |
 | `docs/dev/DEVELOPMENT_SETUP.md` | 本地环境：Python/Node/uv/Docker/pre-commit/IDE 配置 | ⏳ 待写 | — | 维护者 |
-| `docs/dev/TESTING_STRATEGY.md` | 单元/集成/契约/E2E/黄金数据集/覆盖率门槛/CI 矩阵 | ⏳ 待写 | 测试基建 | QA |
+| `docs/dev/TESTING.md` | 分层策略 + 43 个现有测试逐项清单 + 金标评估方法（原规划名 TESTING_STRATEGY.md） | ✅ 已有 | tests/, ci.yml | QA |
 | `docs/dev/ADR/*.md` | 架构决策记录（背景/决策/后果/替代方案） | 📝 部分 | — | 架构师 |
 | `docs/dev/PLUGIN_DEVELOPMENT.md` | DSH 插件规范：manifest/入口/权限/发布/版本兼容 | ✅ 已有 | hermes dsh-plugins 分支 | 插件 Owner |
 | `docs/dev/RELEASE_PROCESS.md` | 语义化版本、Changelog 生成、Git 标签、二进制/APK/镜像发布 | ⏳ 待写 | CI/CD | 发布工程师 |
-| `docs/dev/SECURITY.md` | 安全报告邮箱、依赖扫描、密钥轮换、渗透测试节奏 | ⏳ 待写 | — | 安全 Owner |
+| `docs/dev/SECURITY.md` | 基线与已知缺口、GitHub 私密漏洞报告渠道、响应时限、加固清单 | ✅ 已有 | — | 安全 Owner |
 | `docs/biz/OCR_STRATEGY.md` | **OCR 三级降级链、各方案 License、接口规范** | ✅ 本批完成 | — | OCR Owner |
 | `docs/biz/PRODUCT_TIERS.md` | **免费/专业版切分、CPA 签发边界、免责声明、定价** | ✅ 本批完成 | action-tree/docs/11/10/12 | 产品/法务 |
 | `docs/biz/ASSETS_AND_LICENSE.md` | **资产分类表、Open Core 双轨、用户数据权利、商标** | ✅ 本批完成 | action-tree/docs/15/10/12 | 创始人/法务 |
-| `docs/biz/CPA_COMPLIANCE.md` | 执业边界细则、免责声明模板、合规检查清单、审计准则映射 | 📝 进行中 | PRODUCT_TIERS.md, 法律顾问 | 法务/产品 |
+| `docs/biz/CPA_COMPLIANCE.md` | 执业边界细则、免责声明全文镜像、红线清单、场景速判表 | ✅ 已有 | PRODUCT_TIERS.md, 法律顾问终审待办 | 法务/产品 |
 | `docs/biz/ROADMAP_PUBLIC.md` | 对外公开路线图：v0.2~v1.0 里程碑、功能承诺、时间窗口 | 📝 进行中 | VERSIONING.md, 内部 OKR | 创始人/产品 |
-| `docs/biz/PRIVACY_POLICY.md` | GDPR/个保法合规隐私政策（数据收集/用途/共享/权利/联系人） | ⏳ 待写 | ASSETS_AND_LICENSE.md | 法务 |
+| `docs/biz/PRIVACY.md` | 本机数据清单/出网穷举/ZZ_AI_* 边界/删除方式（正式云端隐私政策仍待写） | ✅ 已有 | ASSETS_AND_LICENSE.md | 法务 |
 | `docs/biz/TERMS_OF_SERVICE.md` | 订阅条款、退款政策、SLA、免责、争议解决、知识产权 | ⏳ 待写 | PRODUCT_TIERS.md | 法务 |
 | `docs/biz/DATA_PROCESSING_ADDENDUM.md` | 企业客户 DPA：数据处理者义务、分包商、跨境传输、审计权 | ⏳ 待写 | PRIVACY_POLICY.md | 法务 |
 | `docs/biz/LIMITATIONS.md` | 已知限制、不做项、技术债、规模边界 | ✅ 已有 | — | 架构师/产品 |
