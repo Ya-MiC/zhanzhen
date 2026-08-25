@@ -67,7 +67,7 @@ _TPL_GOV = """<h1>专项资金使用情况核验报告（初稿）</h1>
 _TPL_BOSS = """<h1>{{tenant}} 经营体检报告（{{period}}）</h1>
 <p>老板您好，我们检查了账上 {{n}} 个风险点，白话讲：</p>
 <ol>{% for f in findings %}
-<li><b>{{f.title}}</b>——{{f.detail}}
+<li><b>{{f.title}}</b>（编号 {{f.rule_id}}）——{{f.detail}}
 <br>👉 建议：{{f.suggested_procedure}}（责任岗位：财务负责人）</li>{% endfor %}</ol>
 <p>{{disclaimer}}</p>"""
 
