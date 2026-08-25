@@ -85,8 +85,36 @@ async def upload_voucher(file: UploadFile = File(...),
 
 # ---------- OCR ----------
 @app.post("/v1/vouchers/{voucher_id}/ocr")
-def run_ocr(voucher_id: str, provider: str = "auto"):
-    return get_svc().run_ocr(voucher_id, provider_name=provider)
+def run_ocr(voucher_id: str, provider: str = "auto", router: str = "manual"):
+    """跑 OCR。
+
+    router=auto 时按 docs/OCR_STRATEGY.md 三级降级链自动选路：
+    pdf→文本层；txt→stub 桩；图片→tesseract → PaddleOCR → NEEDS_SERVER。
+    选路结果回显 engine/fallback_chain，便于客户端埋点降级率。
+    """
+    svc = get_svc()
+    if router == "auto":
+        from .ocr_router import NeedsServerError, OcrRouter
+        rec = svc.store.vouchers.get(voucher_id)
+        if not rec:
+            raise HTTPException(404, "voucher not found")
+        try:
+            selected, chain = OcrRouter().route(rec.get("filename", ""))
+        except NeedsServerError as e:
+            # 诚实失败：不编数据，凭证留在 INGESTED 可重试；给出明确安装/升级指引
+            return JSONR({"code": "NEEDS_SERVER", "message": str(e),
+                           "details": {"voucher_id": voucher_id,
+                                        "fallback_chain": [NeedsServerError.code]},
+                           "trace_id": _tid()}, 409)
+        except ValueError as e:
+            return JSONR({"code": "unsupported_file_type", "message": str(e),
+                           "details": {}, "trace_id": _tid()}, 400)
+        out = svc.run_ocr(voucher_id, provider_name="auto",
+                           provider_instance=selected)
+        out["engine"] = selected.name
+        out["fallback_chain"] = chain
+        return out
+    return svc.run_ocr(voucher_id, provider_name=provider)
 
 
 # ---------- 列表/详情 ----------
