@@ -200,6 +200,19 @@ def export_report():
     return FileResponse(path, filename=os.path.basename(path))
 
 
+@app.post("/v1/exports/report-v2")
+def export_report_v2(body: dict):
+    """按受众导出报告：body {"audience": "bank|gov|boss|firm|cross"}。"""
+    from .report_engine import InvalidAudience
+    try:
+        path = get_svc().export_report_v2(
+            (body or {}).get("audience", "boss"))
+    except InvalidAudience as e:
+        return JSONR({"code": "invalid_audience", "message": str(e),
+                       "details": {}, "trace_id": _tid()}, 400)
+    return FileResponse(path, filename=os.path.basename(path))
+
+
 @app.post("/v1/exports/journal-excel")
 def export_excel():
     path = get_svc().export_journal_excel()
