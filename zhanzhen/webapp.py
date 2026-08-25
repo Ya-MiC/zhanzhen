@@ -191,6 +191,52 @@ def integrity():
     return get_svc().verify_integrity()
 
 
+# ---------- 拍照采集包（手机端 → 工作台）----------
+@app.post("/v1/vouchers/capture-batch")
+def capture_batch(body: dict):
+    """接收手机端采集包：{"items": [{filename, content_b64, captured_at, note?}]}。
+
+    手机只负责拍照与本地哈希；服务端重算 SHA-256（spec §4.2 不信客户端）。
+    """
+    svc = get_svc()
+    ids = []
+    for item in (body or {}).get("items", []):
+        import base64 as b64
+        raw = b64.b64decode(item.get("content_b64", ""))
+        vid = svc.ingest(item.get("filename", "photo.jpg"), raw,
+                          source="android_camera")
+        ids.append({"voucher_id": vid, "captured_at": item.get("captured_at"),
+                     "note": item.get("note", "")})
+    return {"ingested": len(ids), "vouchers": ids}
+
+
+# ---------- 用户自有报告上传（写作风格学习素材）----------
+@app.post("/v1/reports/upload-style-sample")
+def upload_style_sample(body: dict):
+    """用户上传自己写过的历史审计报告（文本），进入 style_samples 库。
+
+    仅用于 AI 助手写作风格参考；原文存本地不外发（spec §8.2）。
+    """
+    svc = get_svc()
+    title = (body or {}).get("title") or "untitled"
+    text = (body or {}).get("text", "")
+    if len(text) < 50:
+        return JSONR({"code": "too_short",
+                       "message": "报告正文太短（<50 字符），请检查粘贴是否完整",
+                       "details": {}, "trace_id": _tid()}, 400)
+    sample = {"id": str(uuid.uuid4())[:8], "title": title,
+               "chars": len(text), "added_at": _tid(),
+               "text_head": text[:2000]}
+    svc.store.style_samples.append(sample)
+    svc.store.save()
+    return sample
+
+
+@app.get("/v1/reports/style-samples")
+def list_style_samples():
+    return get_svc().store.style_samples
+
+
 # ---------- demo 数据 ----------
 @app.post("/v1/demo/load")
 def demo_load():
