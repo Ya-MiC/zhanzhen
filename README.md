@@ -1,8 +1,12 @@
 # 🐙 湛箴 — 凭证到报告的完整审计作业程序
 
+<!-- 📸 截图占位：v0.3.0 UI 全面改版后的工作台总览图待补（登录横幅 / 五页签按角色显隐 /
+     顶栏报告额度 / 品牌色）。截图就绪后放 docs/screenshots/workbench-v030.png 并取消下一行注释：
+<img src="docs/screenshots/workbench-v030.png" alt="湛箴工作台 · v0.3.0 全新 UI" width="960"> -->
+
 > **湛箴**，吉祥物符号 🐙（八爪抓证据，一脑管风险）；OZ 仅为内部代号。
 > 命名口径与图标设计见 [docs/BRAND_OCTOPUS.md](docs/BRAND_OCTOPUS.md)
-> **版本**：v0.1.0 · Phase-0 完成 · 发布路线见 [VERSIONING.md](VERSIONING.md)
+> **版本**：v0.3.0 · 平台化与多受众交付轮 · 发布路线见 [VERSIONING.md](VERSIONING.md)
 > 上游依据：[Ya-MiC/action-tree](https://github.com/Ya-MiC/action-tree) 总纲 §26 MVP 与《ENGINEERING_SPEC》工程规范。
 > 定位：上传 PDF/图片凭证 → 图文识别 → 凭证覆核 → 序时账分录 → 规则检查 → **可追溯审计报告**。
 > 铁律：**AI 可以推理，但不能偷改证据** —— 所有证据入库即锁 SHA-256，所有状态迁移追加哈希链事件。
