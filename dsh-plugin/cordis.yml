@@ -1,0 +1,16 @@
+# cordis.yml overlay —— 把湛箴插件装入本地 DSH checkout。
+# 用法：把 ./zhanzhen-dsh-plugin 替换为本仓库 dsh-plugin/ 目录的真实检出路径。
+
+- insert:
+    # v1：湛箴 REST 能力命令集（zz.vouchers / zz.ocr / zz.review / …）
+    - id: zhanzhen-audit
+      name: './zhanzhen-dsh-plugin/src/index.ts'
+      config:
+        baseUrl: 'http://127.0.0.1:8710'
+
+    # v2：审计行业 n8n 工作流（zz.workflow.list / zz.workflow.run）
+    - id: zhanzhen-workflow
+      name: './zhanzhen-dsh-plugin/index.ts'
+      config:
+        defaultDryRun: true
+        # templatesDir: './extra-templates'   # 可选：追加自定义模板目录
