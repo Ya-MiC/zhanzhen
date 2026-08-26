@@ -8,10 +8,15 @@
     "node": ">=18"
   },
   "keywords": [
+    "accounting",
+    "audit",
+    "cordis",
     "deepseek-harness",
     "dsh",
     "dsh-plugin",
-    "audit",
+    "n8n-alternative",
+    "report",
+    "voucher",
     "workflow"
   ],
   "license": "MIT",
