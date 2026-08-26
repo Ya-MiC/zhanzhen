@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "meta": {
+    "name": "audit-basic",
+    "description": "湛箴审计基础流程：拍凭证 → OCR 识别 → 人工覆核 → 账套分录 → 12 规则扫描 → 报告生成 → CPA 签发流转（七节点默认闭环）",
+    "whenToUse": "需要对一批凭证走完整审计作业闭环时使用：从影像采集到执业 CPA 签发的默认端到端流程",
+    "phases": [
+      { "title": "采集", "detail": "拍凭证/上传 PDF，原始影像进入流程" },
+      { "title": "识别", "detail": "OCR 抽取日期、金额、对手方等字段" },
+      { "title": "覆核", "detail": "会计逐字段确认修正，留痕哈希链" },
+      { "title": "记账", "detail": "覆核定稿过账到账套序时分录" },
+      { "title": "检查", "detail": "对账套跑湛箴 12 条审计规则" },
+      { "title": "报告", "detail": "汇总生成可追溯底稿报告" },
+      { "title": "签发", "detail": "执业 CPA 电子签章完成流转" }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "capture",
+      "kind": "trigger",
+      "name": "拍凭证（凭证导入）",
+      "phase": "采集",
+      "params": {}
+    },
+    {
+      "id": "ocr",
+      "kind": "ocr",
+      "name": "OCR 识别",
+      "phase": "识别",
+      "params": { "engine": "zhanzhen-ocr-sim" }
+    },
+    {
+      "id": "review",
+      "kind": "manual",
+      "name": "人工覆核",
+      "phase": "覆核",
+      "params": { "autoApprove": true, "reviewer": "会计·待替换为真人覆核" }
+    },
+    {
+      "id": "journal",
+      "kind": "journal",
+      "name": "账套分录",
+      "phase": "记账",
+      "params": { "ledger": "default" }
+    },
+    {
+      "id": "rules12",
+      "kind": "rules",
+      "name": "12 规则扫描",
+      "phase": "检查",
+      "params": { "ruleSet": "zhanzhen-rules12", "rulesCount": 12 }
+    },
+    {
+      "id": "report",
+      "kind": "report",
+      "name": "报告生成",
+      "phase": "报告",
+      "params": { "format": "html" }
+    },
+    {
+      "id": "approve",
+      "kind": "approve",
+      "name": "CPA 签发流转",
+      "phase": "签发",
+      "params": { "signer": "执业CPA·湛箴" }
+    }
+  ],
+  "edges": [
+    { "from": "capture", "to": "ocr" },
+    { "from": "ocr", "to": "review" },
+    { "from": "review", "to": "journal" },
+    { "from": "journal", "to": "rules12" },
+    { "from": "rules12", "to": "report" },
+    { "from": "report", "to": "approve" }
+  ]
+}

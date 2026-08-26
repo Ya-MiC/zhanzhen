@@ -1,0 +1,21 @@
+{
+  "name": "zhanzhen-audit-workflow",
+  "version": "2.0.0",
+  "description": "湛箴审计OS「审计行业n8n」工作流插件：七节点审计流水线（拍凭证→OCR→覆核→账套→12规则→报告→CPA签发），拓扑排序引擎 + 官方面板事件词表",
+  "author": "Ya-MiC",
+  "homepage": "https://github.com/Ya-MiC/zhanzhen/tree/dsh-plugin/dsh-plugin",
+  "license": "MIT",
+  "dsh": {
+    "minVersion": "*"
+  },
+  "plugins": [
+    {
+      "id": "zhanzhen-audit",
+      "entry": "./src/index.ts"
+    },
+    {
+      "id": "zhanzhen-workflow",
+      "entry": "./index.ts"
+    }
+  ]
+}
