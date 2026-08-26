@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "zhanzhen"
-version = "0.1.0"
+version = "0.3.0"
 description = "湛箴 ZhanZhen Audit OS - 中小企业凭证到报告的审计作业程序（可追溯证据链）"
 readme = "README.md"
 requires-python = ">=3.10"
