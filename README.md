@@ -51,6 +51,19 @@ docker compose up --build
 # 打开 http://localhost:8710
 ```
 
+## 用户端与管理端（两个入口）
+
+| 门户 | 入口 | 谁用 | 能做什么 |
+|---|---|---|---|
+| **用户端** | `/`（下载 App 或访问工作台） | 会计/做账员/客户 | 上传凭证→OCR→覆核→分录→规则→出报告（按角色收口） |
+| **管理台** | `/admin` | 仅管理员 | 平台统计、订阅开通/升级/降级、API Key 发放、到期冻结 |
+
+- 免费版：下载即用，本地自动是管理员，**无登录门槛**（ZZ_AUTH_MODE=local 默认）
+- 专业版：服务器部署后配 `ZZ_USERS=key:名字:角色`，用户拿 API Key 登录，
+  角色四种：admin/accountant/reviewer/viewer——权限矩阵见 `zhanzhen/auth.py`
+- 订阅额度：免费 3 报告/月+100 OCR/月；专业不限量。超量友好提示，数据永不丢
+- 服务器放哪、怎么调试：见 [SERVER_DEPLOY.md](SERVER_DEPLOY.md)
+
 ## 双端架构（Android + Windows）
 
 | 端 | 仓库 | 职责（ENGINEERING_SPEC §6） |
