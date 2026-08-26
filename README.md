@@ -21,6 +21,17 @@
 
 ## 快速开始
 
+### 方式零：Windows 免安装 exe（双击即用）
+
+```powershell
+# 三步打包，详见 docs/BUILD_WINDOWS.md
+pip install -r requirements.txt pyinstaller
+pyinstaller zhanzhen.spec
+# 产物 dist\zhanzhen.exe —— 双击即启动服务并自动打开浏览器
+```
+
+exe 自动挑空闲端口（环境变量 `ZZ_PORT` 可固定），数据保存在 exe 同级 `data\` 目录；Ctrl+C 或关闭窗口退出。
+
 ### 方式一：pip 直接装（Windows/Linux/macOS 通用）
 
 ```bash
