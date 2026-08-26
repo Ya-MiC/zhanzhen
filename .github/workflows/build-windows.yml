@@ -1,0 +1,52 @@
+name: Build Windows EXE
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch: {}
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        run: |
+          pip install --upgrade pip
+          pip install ".[web,excel,pdf]" pyinstaller
+
+      - name: Build exe (PyInstaller)
+        run: pyinstaller zhanzhen.spec --noconfirm
+
+      - name: Smoke test exe
+        run: |
+          ./dist/zhanzhen.exe --help || exit 1
+
+      - name: Rename artifact with version
+        shell: pwsh
+        run: |
+          $ver = if ("${{ github.ref_type }}" -eq "tag") { "${{ github.ref_name }}" } else { "dev" }
+          Move-Item dist/zhanzhen.exe dist/zhanzhen-$ver-windows-x64.exe
+
+      - name: Upload to release (tag builds only)
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/zhanzhen-*-windows-x64.exe
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload artifact (manual runs)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
+        with:
+          name: zhanzhen-windows-exe
+          path: dist/zhanzhen-*.exe
