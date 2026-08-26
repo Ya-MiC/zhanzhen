@@ -117,7 +117,27 @@ def ensure_importable() -> None:
         sys.path.insert(0, root)
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    import argparse
+
+    ap = argparse.ArgumentParser(
+        prog="zhanzhen-desktop",
+        description="湛箴桌面版 —— 本机启动审计工作台并自动打开浏览器")
+    ap.add_argument("--version", action="store_true", help="显示版本号退出")
+    ap.add_argument("--check", action="store_true",
+                    help="自检：打印版本与关键路径后退出（不启动服务）")
+    args = ap.parse_args(argv)
+
+    if args.version or args.check:
+        from . import __version__
+        print(f"湛箴 ZhanZhen Audit OS v{__version__}")
+        if args.check:
+            setup_frozen_paths()
+            print(f"  数据目录: {os.environ.get('ZZ_DATA_DIR', '(默认 .zzdata)')}")
+            print(f"  端口: {os.environ.get('ZZ_PORT', '(自动选择空闲端口)')}")
+            print("  self-check OK")
+        return 0
+
     setup_frozen_paths()
     ensure_importable()
     port = resolve_port()
