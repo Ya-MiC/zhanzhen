@@ -3,104 +3,182 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>湛箴 · 管理台</title>
-<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <style>
+:root{--bg:#f4f6f8;--surface:#fff;--border:#e6e9ee;--text:#1a2433;--muted:#7b8794;
+--primary:#0F4C81;--accent:#C9A063;--danger:#b02a37;--ok:#3aa76d;--radius:12px;
+--shadow:0 1px 2px rgba(16,32,56,.06),0 4px 14px rgba(16,32,56,.06)}
 *{box-sizing:border-box;margin:0}
-body{font-family:"Microsoft YaHei",-apple-system,sans-serif;background:#1a2332;color:#e0e6ed}
-header{background:#0d1520;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid #c9a063}
-header h1{font-size:17px;color:#c9a063}
-main{max-width:1100px;margin:22px auto;padding:0 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
-.card{background:#232f42;border-radius:10px;padding:16px}
-.card h3{color:#c9a063;font-size:14px;margin-bottom:10px}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:7px 9px;border-bottom:1px solid #33415a;text-align:left}
-th{color:#8fa3bd;font-weight:600}
-button{border:0;border-radius:6px;padding:7px 13px;cursor:pointer;font-size:13px;background:#c9a063;color:#1a2332;font-weight:600}
-input,select{padding:7px 9px;border:1px solid #33415a;border-radius:6px;background:#1a2332;color:#e0e6ed;font-size:13px}
-.big{font-size:26px;font-weight:700;color:#fff}
-.muted{color:#8fa3bd;font-size:12px;margin-top:4px}
-.badge{padding:2px 8px;border-radius:9px;font-size:11px}
-.b-active{background:#1a4731;color:#7ee2a8}.b-frozen{background:#4a2020;color:#ff9090}
+body{font-family:Inter,-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);font-size:14px}
+.layout{display:flex;min-height:100vh}
+aside{width:220px;background:#101c2c;color:#c8d2dd;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+.logo{padding:22px 18px;border-bottom:1px solid #1d2d42;display:flex;gap:10px;align-items:center}
+.logo b{color:#fff;font-size:16px}.logo .mark{font-size:20px}.logo small{display:block;font-size:10.5px;color:#7b8ea6}
+nav{padding:14px 12px;flex:1}
+.nav{display:flex;align-items:center;gap:10px;padding:11px 13px;border-radius:8px;cursor:pointer;color:#aab8c9;margin-bottom:3px;font-weight:500}
+.nav.on{background:rgba(201,160,99,.14);color:var(--accent);box-shadow:inset 3px 0 0 var(--accent)}
+.nav:hover{background:#18273c}
+main{flex:1;padding:26px 30px}
+h1{font-size:21px;font-weight:650;margin-bottom:6px}
+.sub{color:var(--muted);margin-bottom:24px;font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.kpi .v{font-size:30px;font-weight:700}
+.kpi .l{color:var(--muted);font-size:12.5px;margin-top:3px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:18px}
+.card h2{font-size:15px;font-weight:650;margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.lamp{width:9px;height:9px;border-radius:50%;display:inline-block}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{color:var(--muted);text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+td{padding:11px 10px;border-bottom:1px solid #f0f2f5}
+tbody tr:hover td{background:#fafbfd}
+button{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:7px 13px;font-size:12.5px;cursor:pointer;font-weight:550}
+button:hover{border-color:var(--primary);color:var(--primary)}
+button.pri{background:var(--primary);color:#fff;border-color:var(--primary)}
+button.gold{background:var(--accent);border-color:var(--accent);color:#23180a;font-weight:650}
+button.danger{color:var(--danger);border-color:#eec9cc;background:#fdf3f4}
+input,select{padding:8px 11px;border:1px solid var(--border);border-radius:8px;font-size:13.5px}
+.badge{padding:3px 10px;border-radius:999px;font-size:11.5px;font-weight:650}
+.b-pro{background:#f7ecd7;color:#8a6519}.b-free{background:#eef1f4;color:#667}
+.b-active{background:#e4f3ea;color:#20744a}.b-frozen{background:#fbe9ea;color:var(--danger)}
+.bar{height:6px;background:#eef1f4;border-radius:99px;overflow:hidden;width:110px;display:inline-block;vertical-align:middle}
+.bar i{display:block;height:100%;background:var(--primary)}
+.rowbtns button{opacity:0;transition:.15s}
+tr:hover .rowbtns button{opacity:1}
+.modal-bg{position:fixed;inset:0;background:rgba(10,20,34,.45);display:none;align-items:center;justify-content:center;z-index:50}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border-radius:14px;padding:26px;width:min(430px,92vw);box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal h3{margin-bottom:16px}
+.danger-zone{border:1.5px dashed #e3b4b8;background:#fef8f8;border-radius:var(--radius);padding:18px;margin-top:8px}
+.muted{color:var(--muted);font-size:12.5px}
+pre.key{background:#101c2c;color:#8fe3ae;padding:12px 14px;border-radius:9px;font-size:12.5px;margin-top:10px;overflow:auto}
+@media(max-width:900px){aside{display:none}main{padding:16px}}
 </style>
 </head>
 <body>
-<header><h1>🐙 湛箴 · 管理台（Admin）</h1>
-<span style="flex:1"></span><span style="font-size:12px;color:#8fa3bd">仅管理员角色可见 · /admin</span></header>
+<div class="layout">
+<aside>
+  <div class="logo"><span class="mark">🐙</span><div><b>湛箴管理台</b><small>Admin Console</small></div></div>
+  <nav>
+    <div class="nav on" data-p="dash" onclick="go('dash')">▦ 仪表盘</div>
+    <div class="nav" data-p="subs" onclick="go('subs')">◈ 订阅管理</div>
+    <div class="nav" data-p="users" onclick="go('users')">◉ 用户与密钥</div>
+    <div class="nav" data-p="sys" onclick="go('sys')">⚙ 系统</div>
+  </nav>
+</aside>
 <main>
-<div class="card"><h3>平台总览</h3>
-  <div class="row" id="stats">加载中…</div>
+<div id="p-dash">
+  <h1>仪表盘</h1><div class="sub">平台实时状态 · 每 30 秒自动刷新</div>
+  <div class="kpis" id="kpis"><div class="kpi"><div class="sk"></div></div></div>
+  <div class="card"><h2><span class="lamp" id="chainLamp" style="background:#ccc"></span> 证据链完整性</h2>
+    <div id="chainTxt" class="muted">检查中…</div></div>
 </div>
 
-<div class="card"><h3>订阅管理</h3>
-  <table id="subs"><tr><th>租户</th><th>套餐</th><th>状态</th><th>报告用量</th><th></th></tr></table>
-  <div style="margin-top:10px" class="row">
-    <input id="newTenant" placeholder="新租户ID" style="width:130px">
-    <select id="newPlan"><option value="free">免费版</option><option value="pro">专业版</option></select>
-    <button onclick="createSub()">开通</button>
+<div id="p-subs" style="display:none">
+  <h1>订阅管理</h1><div class="sub">免费版 3 报告/月 · 专业版不限量 ¥199/年</div>
+  <div class="card">
+    <h2>开通新租户</h2>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <input id="newTenant" placeholder="租户 ID（如 client-a）">
+      <select id="newPlan"><option value="free">免费版</option><option value="pro">⭐ 专业版</option></select>
+      <button class="pri" onclick="createSub()">开通</button>
+    </div>
+  </div>
+  <div class="card"><h2>全部订阅</h2>
+    <table id="subsT"><thead><tr><th>租户</th><th>套餐</th><th>状态</th><th>本月报告用量</th><th style="text-align:right">操作</th></tr></thead><tbody></tbody></table>
+  </div>
+  <div class="danger-zone">
+    <b style="color:var(--danger)">⚠ 危险区</b>
+    <p class="muted" style="margin:6px 0 12px">冻结所有已过期且过宽限期的专业版订阅（数据保留 90 天）。</p>
+    <button class="danger" onclick="freeze()">执行冻结扫描</button>
+    <span id="freezeOut" class="muted" style="margin-left:10px"></span>
   </div>
 </div>
 
-<div class="card"><h3>用户与角色</h3>
-  <p class="muted" style="margin-bottom:8px">用户端 App 下载后用分配的 API Key 登录；角色决定可见功能。</p>
-  <div class="row">
-    <input id="uName" placeholder="用户名" style="width:100px">
-    <select id="uRole"><option value="accountant">做账员</option><option value="reviewer">复核人</option>
-      <option value="viewer">客户只读</option><option value="admin">管理员</option></select>
-    <button onclick="genKey()">生成 API Key</button>
+<div id="p-users" style="display:none">
+  <h1>用户与 API 密钥</h1><div class="sub">向导式发放：选角色 → 生成 → 复制发给用户（仅展示一次）</div>
+  <div class="card">
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+      <div><label class="muted">用户名</label><br><input id="uName" placeholder="xiaowang"></div>
+      <div><label class="muted">角色</label><br>
+        <select id="uRole"><option value="accountant">做账员 accountant</option>
+        <option value="reviewer">复核人 reviewer</option>
+        <option value="viewer">客户只读 viewer</option>
+        <option value="admin">管理员 admin</option></select></div>
+      <button class="gold" onclick="genKey()">生成 API Key</button>
+    </div>
+    <pre class="key" id="keyOut" style="display:none"></pre>
+    <p class="muted" style="margin-top:10px">将整行追加到服务器 .env 的 ZZ_USERS 后重启服务生效。用户在登录框粘贴 key 即可进入对应角色视图。</p>
   </div>
-  <pre id="keyOut" style="margin-top:8px;color:#7ee2a8;font-size:12px"></pre>
 </div>
 
-<div class="card"><h3>运营数据</h3>
-  <div id="ops" class="muted">加载中…</div>
+<div id="p-sys" style="display:none">
+  <h1>系统</h1><div class="sub">部署形态见仓库 SERVER_DEPLOY.md；数据库 PostgreSQL 由 ZZ_DATABASE_URL 控制</div>
+  <div class="card"><h2>当前配置</h2><div id="sysCfg" class="muted">加载中…</div></div>
 </div>
 </main>
+</div>
+
 <script>
-const {createApp}=Vue;
-createApp({
-  data(){return{}},
-  methods:{
-  },
-}).mount('#nonexist');
-// 原生 JS 简洁实现
-async function j(url,opt){const r=await fetch(url,opt);if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.status);return r.json()}
+const H=()=>({}); // 单机模式无需鉴权头；多用户模式自行加 X-API-Key
+async function j(url,opt={}){const r=await fetch(url,opt);
+  if(!r.ok){let m='HTTP '+r.status;try{m=(await r.json()).message||m}catch(e){};throw new Error(m)}return r.json()}
+function go(p){document.querySelectorAll('[id^=p-]').forEach(x=>x.style.display='none');
+  document.getElementById('p-'+p).style.display='block';
+  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('on',n.dataset.p===p));
+  if(p==='sys')loadSys()}
 async function refresh(){
-  const s=await j('/v1/admin/stats').catch(()=>null);
-  if(s){
-    document.getElementById('stats').innerHTML=
-      ['companies 企业','projects 项目','vouchers 凭证','entries 分录','users 用户']
-      .map(k=>{const[key]=k.split(' ');return `<div><div class="big">${s.stats[key]??'-'}</div><div class="muted">${k}</div></div>`}).join('');
-  }
-  const subs=await j('/v1/admin/subscriptions').catch(()=>[]);
-  document.getElementById('subs').innerHTML=
-    '<tr><th>租户</th><th>套餐</th><th>状态</th><th>报告用量</th><th></th></tr>'+
-    (Array.isArray(subs)?subs.map(x=>`<tr><td>${x.tenant_id}</td>
-      <td>${x.plan==='pro'?'⭐专业版':'免费版'}</td>
+  try{
+    const s=await j('/v1/admin/stats');
+    const st=s.stats||{};
+    document.getElementById('kpis').innerHTML=[['companies','企业'],['projects','项目'],['vouchers','凭证'],['entries','分录']]
+      .map(([k,l])=>`<div class="kpi"><div class="v">${st[k]??'-'}</div><div class="l">${l}</div></div>`).join('');
+    const cl=document.getElementById('chainLamp'),ct=document.getElementById('chainTxt');
+    const iv=s.integrity||{};
+    cl.style.background=iv.chain_ok?'var(--ok)':'var(--danger)';
+    ct.textContent=(iv.chain_ok?'✔ 哈希链完整，':'✘ 链校验失败：')+(iv.event_count??0)+' 条事件'+(iv.errors&&iv.errors.length?(' | '+iv.errors[0]):'');
+  }catch(e){}
+  try{
+    const subs=await j('/v1/admin/subscriptions');
+    document.querySelector('#subsT tbody').innerHTML=(Array.isArray(subs)?subs:[]).map(x=>{
+      const used=x.reports_used_this_month||0,lim=x.monthly_report_quota||3;
+      const pct=Math.min(100,Math.round(used/lim*100));
+      return `<tr><td><b>${x.tenant_id}</b></td>
+      <td><span class="badge ${x.plan==='pro'?'b-pro':'b-free'}">${x.plan==='pro'?'⭐ 专业版':'免费版'}</span></td>
       <td><span class="badge b-${x.status}">${x.status}</span></td>
-      <td>${x.reports_used_this_month}/${x.monthly_report_quota}</td>
-      <td>${x.plan==='free'?`<button onclick="up('${x.tenant_id}')">升专业</button>`
-        :`<button onclick="down('${x.tenant_id}')">降免费</button>`}</td></tr>`).join(''):'');
+      <td>${used}/${x.plan==='pro'?'∞':lim} <span class="bar"><i style="width:${x.plan==='pro'?8:pct}%"></i></span></td>
+      <td style="text-align:right"><span class="rowbtns">
+        ${x.plan!=='pro'?`<button class="gold" onclick="up('${x.tenant_id}')">升专业版</button>`
+          :`<button onclick="down('${x.tenant_id}')">降回免费</button>`}</span></td></tr>`}).join('');
+  }catch(e){}
 }
-async function up(t){await j('/v1/admin/subscriptions/upgrade',{method:'POST',
-  headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t})});refresh()}
-async function down(t){await j('/v1/admin/subscriptions/downgrade',{method:'POST',
-  headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t})});refresh()}
-async function createSub(){
-  const t=document.getElementById('newTenant').value.trim();
-  const p=document.getElementById('newPlan').value;
-  if(!t)return alert('填租户ID');
-  await j('/v1/admin/subscriptions/create',{method:'POST',
-    headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t,plan:p})});
-  refresh()}
+async function up(t){await j('/v1/admin/subscriptions/upgrade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t})});refresh()}
+async function down(t){await j('/v1/admin/subscriptions/downgrade',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t})});refresh()}
+async function createSub(){const t=document.getElementById('newTenant').value.trim();
+  if(!t)return alert('填租户 ID');
+  await j('/v1/admin/subscriptions/create',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({tenant_id:t,plan:document.getElementById('newPlan').value})});
+  document.getElementById('newTenant').value='';refresh()}
+async function freeze(){if(!confirm('确认冻结全部过期订阅？此操作影响线上用户。'))return;
+  const r=await j('/v1/admin/freeze-expired',{method:'POST'});
+  document.getElementById('freezeOut').textContent='本次冻结 '+r.frozen+' 个';refresh()}
 function genKey(){
   const n=document.getElementById('uName').value.trim()||'user';
   const r=document.getElementById('uRole').value;
-  // MVP：本地生成展示；生产由服务端 POST /v1/admin/users 落库
-  const key='zzk_'+Array.from(crypto.getRandomValues(new Uint8Array(18))).map(b=>b.toString(36)).join('').slice(0,24);
-  document.getElementById('keyOut').textContent=`ZZ_USERS 追加项:
-  ${key}:${n}:${r}
-(发给用户在 App 设置里粘贴即登录)`;
+  const b=new Uint8Array(18);crypto.getRandomValues(b);
+  const key='zzk_'+Array.from(b).map(x=>x.toString(36)).join('').slice(0,24);
+  const out=document.getElementById('keyOut');out.style.display='block';
+  out.textContent=`ZZ_USERS 追加（追加后重启服务）:
+${key}:${n}:${r}
+
+⚠ 仅显示这一次，请立即复制发给用户`;
 }
+async function loadSys(){try{
+  const me=await j('/v1/me');
+  document.getElementById('sysCfg').innerHTML=
+    `认证模式：<b>${me.auth_mode||'local'}</b>　·　角色：<b>${me.role}</b>　·　租户：<b>${me.tenant_id||'default'}</b><br>`+
+    `套餐：<b>${me.plan||'free'}</b>　·　报告额度：${me.quota_label||(me.reports_remaining??'-')}<br>`+
+    `数据库：PostgreSQL（ZZ_DATABASE_URL 已设）或 SQLite 本地降级——以服务端启动日志为准`;
+}catch(e){document.getElementById('sysCfg').textContent=e.message}}
 refresh();setInterval(refresh,30000);
 </script>
 </body>
