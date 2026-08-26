@@ -131,12 +131,19 @@ class AuditService:
             return StubProvider()
         if prefer == "pdf-textlayer":
             return TextLayerPDFProvider()
+        from .ocr import get_provider_for, ImagePaddleProvider
         lower = filename.lower()
         if lower.endswith(".pdf"):
             return TextLayerPDFProvider()
-        raise AuditError(
-            f"暂不支持的文件类型: {filename}。MVP 支持 PDF 文本层；图片请安装 zhanzhen[ocr]"
-        )
+        if lower.endswith((".jpg", ".jpeg", ".png", ".webp", ".bmp")):
+            try:
+                import paddleocr  # noqa: F401 探测可选依赖
+                return ImagePaddleProvider()
+            except ImportError:
+                raise AuditError(
+                    "图片识别需要服务端安装 PaddleOCR（pip install 'zhanzhen[ocr]'）；"
+                    "当前请改传 PDF 或使用文字型凭证")
+        raise AuditError(f"暂不支持的文件类型: {filename}")
 
     # ---------- 3. 人工覆核 ----------
     def review(self, voucher_id: str, corrections: dict, reviewer: str = "human",
