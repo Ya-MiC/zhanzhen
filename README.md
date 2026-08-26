@@ -66,6 +66,12 @@ docker compose up --build
 # 打开 http://localhost:8710
 ```
 
+## 🌐 网页版（Cloudflare Pages，免服务器打开即用）
+
+静态前端独立仓库：[Ya-MiC/zhanzhen-web](https://github.com/Ya-MiC/zhanzhen-web)
+→ CF Pages 连接该仓库一键部署（无需构建命令），打开后填你的 API 地址 + Key 即可使用。
+数据与桌面/手机端完全同源（同一 PostgreSQL），三端一致。
+
 ## 用户端与管理端（两个入口）
 
 | 门户 | 入口 | 谁用 | 能做什么 |
