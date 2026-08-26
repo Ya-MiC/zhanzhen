@@ -11,8 +11,10 @@ from __future__ import annotations
 
 import os
 import uuid
+from datetime import datetime, timezone
 from typing import Optional
 
+from .auth import AuthError as _AuthError
 from .service import AuditService, AuditError
 from .state_machine import InvalidTransition
 
@@ -118,6 +120,13 @@ async def invalid_transition(_req, exc: InvalidTransition):
                    "details": {}, "trace_id": _tid()}, 409)
 
 
+@app.exception_handler(_AuthError)
+async def auth_error(_req, exc: _AuthError):
+    """多用户模式下缺/错 API Key → 统一 401 信封（前端据此弹出登录横幅）。"""
+    return JSONR({"code": "unauthorized", "message": str(exc),
+                   "details": {}, "trace_id": _tid()}, 401)
+
+
 def _tid() -> str:
     return uuid.uuid4().hex[:12]
 
@@ -125,6 +134,43 @@ def _tid() -> str:
 def JSONR(payload: dict, status: int):
     from fastapi.responses import JSONResponse
     return JSONResponse(status_code=status, content=payload)
+
+
+# ---------- 当前身份/额度（用户端显隐与顶栏额度的唯一依据） ----------
+@app.get("/v1/me")
+def me(principal = Depends(current_principal)):
+    """当前操作者：角色/租户/订阅状态/剩余额度。
+
+    - auth_mode=local：未配置 ZZ_USERS 的单机模式，本地使用者即管理员；
+    - auth_mode=multi：多用户部署，请求须携带 X-API-Key（缺/错 key → 401 信封，
+      前端据此显示登录横幅）；
+    - quota.reports_remaining / ocr_remaining 为 null 表示不限量（专业版）。
+    """
+    from .auth import load_principals
+    sub = get_billing().current_plan(principal.tenant_id)
+    period = datetime.now(timezone.utc).strftime("%Y-%m")
+    if sub.get("quota_period") != period:   # 跨月未消费 → 按满额展示
+        used_reports = used_ocr = 0
+    else:
+        used_reports = sub.get("reports_used_this_month") or 0
+        used_ocr = sub.get("ocr_used_this_month") or 0
+    unlimited = sub["plan"] == "pro"
+    return {
+        "principal": {"name": principal.name, "role": principal.role,
+                      "tenant_id": principal.tenant_id},
+        "auth_mode": "multi" if load_principals() else "local",
+        "subscription": {"plan": sub["plan"], "status": sub["status"],
+                         "expires_at": sub.get("expires_at")},
+        "quota": {
+            "reports_used": used_reports,
+            "reports_limit": sub["monthly_report_quota"],
+            "reports_remaining": None if unlimited
+                else max(int(sub["monthly_report_quota"]) - used_reports, 0),
+            "ocr_remaining": None if unlimited
+                else max(int(sub["ocr_quota_monthly"]) - used_ocr, 0),
+            "unlimited": unlimited,
+        },
+    }
 
 
 # ---------- 上传 ----------
