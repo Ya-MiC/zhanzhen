@@ -214,17 +214,55 @@ class StubProvider:
         return OCRResult(voucher_json=vj, engine_name=self.name, model_version="stub-v1")
 
 
-def get_provider_for(filename: str, prefer: str = "auto") -> OCRProvider:
-    """按文件类型选 provider；图片在未装 PaddleOCR 时给出可读错误。"""
+class ImagePaddleProvider:
+    """图片 OCR（jpg/png）：PaddleOCR 懒加载，未安装时给可读安装指引。"""
+
+    name = "paddle-image"
+
+    def process(self, file_ref, options):
+        try:
+            from paddleocr import PaddleOCR  # 懒加载重依赖
+        except ImportError as e:
+            vj = _base_voucher(file_ref, options)
+            vj["quality"]["reasons"] = ["image_needs_paddleocr"]
+            return OCRResult(voucher_json=vj,
+                error_code="IMAGE_NEEDS_PADDLEOCR", retriable=False,
+                engine_name=self.name)
+        import numpy as np  # paddleocr 依赖链自带
+        import cv2  # noqa
+        ocr = PaddleOCR(use_angle_cls=True, lang="ch", show_log=False)
+        arr = cv2.imdecode(
+            np.frombuffer(file_ref.content_bytes, np.uint8), cv2.IMREAD_COLOR)
+        result = ocr.ocr(arr, cls=True)
+        lines = []
+        for page in result or []:
+            for box, (txt, conf) in (page or []):
+                lines.append(txt)
+        text = "\n".join(lines)
+        if not text.strip():
+            r = OCRResult(voucher_json=_base_voucher(file_ref, options),
+                          error_code="no_text_found", retriable=False,
+                          engine_name=self.name)
+            r.voucher_json["quality"]["reasons"] = ["no_text_in_image"]
+            return r
+        out = TextLayerPDFProvider()._from_text(text, file_ref, options)
+        out.engine_name = self.name
+        out.voucher_json["provenance"]["ocr_engine"] = self.name
+        return out
+
+
+def get_provider_for(filename: str, prefer: str = "auto"):
+    """按文件类型选 provider。图片：装了 PaddleOCR 就真识别，没装给可读指引。"""
     lower = filename.lower()
     if lower.endswith(".pdf"):
         return TextLayerPDFProvider()
-    if prefer == "paddle":
+    if lower.endswith((".jpg", ".jpeg", ".png", ".webp", ".bmp")):
         try:
-            import paddleocr  # noqa: F401
-        except ImportError as e:
+            import paddleocr  # noqa: F401 探测
+            return ImagePaddleProvider()
+        except ImportError:
             raise RuntimeError(
-                "图片识别需要 PaddleOCR：pip install 'zhanzhen[ocr]' 后重试"
-            ) from e
-        raise RuntimeError("PaddleOCR adapter 将在 Week3 提供，当前请用 PDF 文本层或 Stub")
-    raise RuntimeError(f"暂不支持的文件类型: {filename}（MVP 支持 PDF；图片需 [ocr] extra）")
+                "图片识别需要 PaddleOCR：pip install 'zhanzhen[ocr]' "
+                "（或在手机端用系统 OCR/导出采集包由服务器识别）")
+    raise RuntimeError(
+        f"暂不支持的文件类型: {filename}（支持 PDF 与 jpg/png 图片[需 ocr extra]）")
