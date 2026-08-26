@@ -17,7 +17,7 @@ from .service import AuditService, AuditError
 from .state_machine import InvalidTransition
 
 try:
-    from fastapi import FastAPI, File, Header, HTTPException, UploadFile
+    from fastapi import Depends, FastAPI, File, Header, HTTPException, UploadFile
     from fastapi.responses import FileResponse, HTMLResponse
     from pydantic import BaseModel
 except ImportError as _e:  # pragma: no cover
