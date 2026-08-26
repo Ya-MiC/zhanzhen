@@ -25,9 +25,8 @@ jobs:
       - name: Build exe (PyInstaller)
         run: pyinstaller zhanzhen.spec --noconfirm
 
-      - name: Smoke test exe
-        run: |
-          ./dist/zhanzhen.exe --help || exit 1
+      - name: Smoke test exe (version print must exit 0)
+        run: ./dist/zhanzhen.exe --version
 
       - name: Rename artifact with version
         shell: pwsh
