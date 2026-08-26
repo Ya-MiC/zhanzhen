@@ -119,7 +119,7 @@ def render(ctx: ReportContext) -> str:
         rows = ""
         for f in v["findings"]:
             ev = "; ".join(map(str, f.evidence)) if isinstance(f.evidence, list) else str(f.evidence)
-            rows += f"<li>[{html.escape(f.severity)}] {html.escape(f.title)}："                     f"{html.escape(f.detail)}（证据:{html.escape(ev)}）</li>"
+            rows += f"<li>[{html.escape(f.severity)}] {html.escape(f.title)}：{html.escape(f.detail)}（证据:{html.escape(ev)})</li>"
         jr = "".join(f"<tr><td>{r.get('科目','')}</td><td>{r.get('借方','')}</td>"
                      f"<td>{r.get('贷方','')}</td></tr>" for r in v["journal"])
         body = tpl
@@ -127,14 +127,26 @@ def render(ctx: ReportContext) -> str:
             body = body.replace("{{" + k + "}}", str(v[k]))
         body = body.replace("{{disclaimer}}", DISCLAIMER)
         import re
-        body = re.sub(r"\{%.*?%\}", "", body, flags=re.S)  # 去掉未渲染的 jinja 块
+        # 处理 boss 模板的 findings 循环 - 手工展开
+        if ctx.audience == "boss":
+            # boss 模板: <ol>{% for f in findings %}<li><b>{{f.title}}</b>（编号 {{f.rule_id}}）...
+            # 需要替换整个循环块
+            loop_pattern = r"{% for f in findings %}.*?{% endfor %}"
+            replacement = "".join(
+                f"<li><b>{html.escape(f.title)}</b>（编号 {html.escape(f.rule_id)}）"
+                f"——{html.escape(f.detail)}<br>👉 建议：{html.escape(f.suggested_procedure)}（责任岗位：财务负责人）</li>"
+                for f in v["findings"]
+            )
+            body = re.sub(loop_pattern, replacement, body, flags=re.S)
+        else:
+            # 其他模板：去掉 jinja 块，手工展开 findings
+            body = re.sub(r"{%.*?%}", "", body, flags=re.S)
+            if rows:
+                body = body + "<ul class='findings'>" + rows + "</ul>"
+        # 通用替换 journal 循环
         body = body.replace("{% for r in journal %}", "").replace("{% endfor %}", "")
         body = body.replace('<tr><td>{{r["科目"]}}</td><td>{{r["借方"]}}</td>'
                              '<td>{{r["贷方"]}}</td></tr>', jr)
-        body = body.replace("<li>", "<ul><li>", 1) if "<li>" in body else body
-        body = body.replace("</li>{% endfor %}", "</li></ul>")
-        if rows:
-            body = body + "<ul class='findings'>" + rows + "</ul>"
         return body
 
 
