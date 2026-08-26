@@ -23,9 +23,54 @@ try:
 except ImportError as _e:  # pragma: no cover
     raise ImportError("Web 层需要: pip install 'zhanzhen[web]'") from _e
 
-app = FastAPI(title="湛箴 ZhanZhen Audit OS", version="0.1.0")
+app = FastAPI(title="湛箴 ZhanZhen Audit OS", version="0.2.0")
 
 _svc: Optional[AuditService] = None
+_db = None
+_billing = None
+_principals: dict = {}
+
+
+def get_db():
+    global _db
+    if _db is None:
+        from .database import Database
+        data_dir = os.environ.get("ZZ_DATA_DIR", ".zzdata")
+        _db = Database(os.path.join(data_dir, "zhanzhen.db"))
+    return _db
+
+
+def get_billing():
+    global _billing
+    if _billing is None:
+        from .billing import Billing
+        _billing = Billing(get_db())
+    return _billing
+
+
+def current_principal(x_api_key: Optional[str] = Header(default=None)):
+    """识别操作者：有 ZZ_USERS 配置则校验 key；无配置=本地单机 admin。"""
+    from .auth import Principal, Role, load_principals, AuthError
+    global _principals
+    if not _principals:
+        _principals = load_principals()
+    if not _principals:
+        return Principal(name="local-admin", role=Role.ADMIN,
+                          tenant_id=os.environ.get("ZZ_TENANT_ID", "default"))
+    if not x_api_key or x_api_key not in _principals:
+        raise AuthError("无效 API Key")
+    return _principals[x_api_key]
+
+
+def require(action: str, principal) -> None:
+    from .auth import require_role
+    require_role(principal, action)
+
+
+def admin_only(principal) -> None:
+    if principal.role != "admin":
+        from .auth import AuthError
+        raise AuthError("仅管理员可访问管理台接口")
 
 
 def get_svc() -> AuditService:
@@ -40,6 +85,15 @@ class CorrectionIn(BaseModel):
     corrections: dict = {}
     reviewer: str = "web-user"
     approve: bool = True
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    idx = os.path.join(os.path.dirname(__file__), "..", "web", "admin.html")
+    if os.path.exists(idx):
+        with open(idx, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>web/admin.html 缺失</h1>")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -296,3 +350,71 @@ def list_style_samples():
 def demo_load():
     ids = get_svc().load_demo_data()
     return {"voucher_ids": ids}
+
+
+# ================= 管理端（仅 admin 角色） =================
+@app.get("/v1/admin/stats")
+def admin_stats(principal = Depends(current_principal)):
+    try:
+        require("admin.panel", principal); admin_only(principal)
+    except Exception as e:
+        return JSONR({"code": "forbidden", "message": str(e), "details": {}, "trace_id": _tid()}, 403)
+    db = get_db()
+    svc = get_svc()
+    return {"stats": db.stats(), "integrity": svc.verify_integrity()}
+
+
+@app.get("/v1/admin/subscriptions")
+def admin_subs(principal = Depends(current_principal)):
+    try:
+        admin_only(principal)
+    except Exception as e:
+        return JSONR({"code": "forbidden", "message": str(e), "details": {}, "trace_id": _tid()}, 403)
+    return get_db().query("SELECT * FROM subscriptions ORDER BY created_at DESC")
+
+
+@app.post("/v1/admin/subscriptions/create")
+def admin_sub_create(body: dict, principal = Depends(current_principal)):
+    try:
+        admin_only(principal)
+    except Exception as e:
+        return JSONR({"code": "forbidden", "message": str(e), "details": {}, "trace_id": _tid()}, 403)
+    t = (body or {}).get("tenant_id", "").strip()
+    p = (body or {}).get("plan", "free")
+    if not t:
+        return JSONR({"code": "bad_request", "message": "tenant_id 必填", "details": {}, "trace_id": _tid()}, 400)
+    return get_db().ensure_subscription(t, p)
+
+
+@app.post("/v1/admin/subscriptions/upgrade")
+def admin_sub_upgrade(body: dict, principal = Depends(current_principal)):
+    try:
+        admin_only(principal)
+    except Exception as e:
+        return JSONR({"code": "forbidden", "message": str(e), "details": {}, "trace_id": _tid()}, 403)
+    t = (body or {}).get("tenant_id")
+    if not t:
+        return JSONR({"code": "bad_request", "message": "tenant_id 必填", "details": {}, "trace_id": _tid()}, 400)
+    return get_billing().upgrade(t)
+
+
+@app.post("/v1/admin/subscriptions/downgrade")
+def admin_sub_downgrade(body: dict, principal = Depends(current_principal)):
+    try:
+        admin_only(principal)
+    except Exception as e:
+        return JSONR({"code": "forbidden", "message": str(e), "details": {}, "trace_id": _tid()}, 403)
+    t = (body or {}).get("tenant_id")
+    if not t:
+        return JSONR({"code": "bad_request", "message": "tenant_id 必填", "details": {}, "trace_id": _tid()}, 400)
+    return get_billing().downgrade(t)
+
+
+@app.post("/v1/admin/freeze-expired")
+def admin_freeze_expired(principal = Depends(current_principal)):
+    try:
+        admin_only(principal)
+    except Exception as e:
+        return JSONR({"code": "forbidden", "message": str(e), "details": {}, "trace_id": _tid()}, 403)
+    n = get_billing().freeze_expired()
+    return {"frozen": n}
