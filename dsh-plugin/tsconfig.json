@@ -17,6 +17,6 @@
     "forceConsistentCasingInFileNames": true,
     "types": ["node"]
   },
-  "include": ["index.ts", "workflow-engine.ts", "smoke.ts", "src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["index.ts", "workflow-engine.ts", "smoke.ts"],
+  "exclude": ["node_modules", "dist", "src"]
 }
