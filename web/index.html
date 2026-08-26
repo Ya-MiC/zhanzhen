@@ -6,22 +6,38 @@
 <title>湛箴 · 审计作业台</title>
 <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
 <style>
+:root{--zz-blue:#0F4C81;--zz-blue-dk:#0a3a63;--zz-gold:#C9A063}
 *{box-sizing:border-box;margin:0}
 body{font-family:"Microsoft YaHei",-apple-system,sans-serif;background:#f5f6f8;color:#1c2733}
-header{background:#0f4c81;color:#fff;padding:14px 24px;display:flex;align-items:center;gap:16px}
+header{background:linear-gradient(135deg,var(--zz-blue),var(--zz-blue-dk));color:#fff;padding:14px 24px;
+  display:flex;align-items:center;gap:16px;border-bottom:3px solid var(--zz-gold)}
 header h1{font-size:18px;font-weight:600}
 header .sub{opacity:.75;font-size:12px}
+.mode-badge{padding:3px 12px;border-radius:12px;font-size:12px;font-weight:600;
+  background:rgba(201,160,99,.18);border:1px solid var(--zz-gold);color:#f0dcb8;white-space:nowrap}
+.who{font-size:13px;color:#e8eef5;white-space:nowrap}
+.quota-chip{padding:4px 14px;border-radius:14px;font-size:13px;font-weight:600;white-space:nowrap;
+  background:rgba(201,160,99,.15);border:1px solid var(--zz-gold);color:#f5e6c8}
+.quota-chip b{color:#ffd98a;font-variant-numeric:tabular-nums}
+.admin-link{font-size:13px;color:var(--zz-gold);text-decoration:none;font-weight:600;white-space:nowrap;
+  padding:4px 12px;border:1px solid var(--zz-gold);border-radius:6px}
+.admin-link:hover{background:rgba(201,160,99,.2)}
+.loginbar{display:flex;align-items:center;gap:12px;padding:11px 24px;flex-wrap:wrap;
+  background:#faf3e6;border-bottom:1px solid var(--zz-gold);font-size:13px}
+.loginbar .lock{font-weight:600;color:var(--zz-blue)}
+.loginbar input{min-width:260px}
 main{max-width:1200px;margin:20px auto;padding:0 16px}
 .tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
 .tab{padding:9px 18px;background:#fff;border:1px solid #dfe4ea;border-radius:8px 8px 0 0;cursor:pointer;font-size:14px}
-.tab.on{background:#0f4c81;color:#fff;border-color:#0f4c81}
-.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(15,40,80,.08);margin-bottom:16px}
+.tab.on{background:var(--zz-blue);color:#fff;border-color:var(--zz-blue);box-shadow:inset 0 -3px 0 var(--zz-gold)}
+.card{background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(15,40,80,.08);
+  margin-bottom:16px;border-top:3px solid var(--zz-blue)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{padding:8px 10px;border-bottom:1px solid #edf0f3;text-align:left}
 th{color:#5a6a7a;font-weight:600;background:#fafbfc}
 .num{text-align:right;font-variant-numeric:tabular-nums}
-button{border:0;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:13px;background:#e8eef5;color:#0f4c81}
-button.pri{background:#0f4c81;color:#fff}
+button{border:0;border-radius:6px;padding:7px 14px;cursor:pointer;font-size:13px;background:#e8eef5;color:var(--zz-blue)}
+button.pri{background:var(--zz-blue);color:#fff}
 button.warn{background:#c2410c;color:#fff}
 button:disabled{opacity:.45;cursor:not-allowed}
 .badge{padding:2px 8px;border-radius:9px;font-size:11px;background:#dde3ea;display:inline-block}
@@ -32,10 +48,10 @@ input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-siz
 .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 .ok{color:#1a7f37}.bad{color:#b02a37}
 .muted{color:#78909c;font-size:12px}
-.ai-box{background:#f2f7ff;border-left:3px solid #0f4c81;padding:10px 14px;margin-top:10px;font-size:13px;line-height:1.7}
+.ai-box{background:#f2f7ff;border-left:3px solid var(--zz-blue);padding:10px 14px;margin-top:10px;font-size:13px;line-height:1.7}
 .empty{text-align:center;color:#90a4ae;padding:26px}
 .drop{border:2px dashed #b8c4d0;border-radius:10px;padding:34px;text-align:center;color:#607d8b;cursor:pointer}
-.drop.hover{background:#eef4fb;border-color:#0f4c81}
+.drop.hover{background:#eef4fb;border-color:var(--zz-blue)}
 </style>
 </head>
 <body>
@@ -47,10 +63,24 @@ input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-siz
     事件链:<span :class="integrity.chain_ok?'ok':'bad'">{{ integrity.chain_ok?'✔ 完整':'✘ 损坏' }}</span>
     　{{ integrity.event_count }} 条事件
   </span>
+  <span class="quota-chip" v-if="me&&me.quota" title="本月报告导出额度（专业版不限量）">本月报告 <b>{{ quotaText }}</b></span>
+  <a v-if="isAdmin" class="admin-link" href="/admin" target="_blank">管理台 ↗</a>
+  <span class="mode-badge" v-if="authMode==='local'">单机模式 · 管理员</span>
+  <span class="who" v-else-if="me&&me.principal">{{ me.principal.name }} · {{ roleName }}</span>
 </header>
+
+<!-- 登录横幅：多用户部署且未持有效 Key 时显示 -->
+<div class="loginbar" v-if="authMode==='multi'&&!(me&&me.principal)">
+  <span class="lock">🔐 多用户模式</span>
+  <input v-model="keyInput" type="password" placeholder="粘贴 API Key（zzk_…）" @keyup.enter="saveKey">
+  <button class="pri" @click="saveKey">登录</button>
+  <span class="bad" v-if="keyError">{{ keyError }}</span>
+  <span class="muted">Key 由管理员在服务端 ZZ_USERS 配置；仅保存在本机浏览器 localStorage，随每次请求附于 X-API-Key 头</span>
+</div>
+
 <main>
 <div class="tabs">
-  <div v-for="(t,i) in tabs" :key="i" class="tab" :class="{on:tab===t.id}" @click="tab=t.id">{{ t.name }}</div>
+  <div v-for="(t,i) in visibleTabs" :key="i" class="tab" :class="{on:tab===t.id}" @click="tab=t.id">{{ t.name }}</div>
 </div>
 
 <!-- 凭证箱 -->
@@ -72,8 +102,8 @@ input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-siz
       <td><span class="badge" :class="'b-'+v.state">{{ v.state }}</span></td>
       <td><span class="sha">{{ (v.sha256||'').slice(0,12) }}…</span></td>
       <td>
-        <button v-if="v.state==='INGESTED'" @click="runOcr(v)">OCR识别</button>
-        <button v-if="v.state==='NEEDS_REVIEW'||v.state==='JOURNAL_DRAFTED'" @click="openReview(v)">覆核</button>
+        <button v-if="v.state==='INGESTED'&&canWork" @click="runOcr(v)">OCR识别</button>
+        <button v-if="(v.state==='NEEDS_REVIEW'||v.state==='JOURNAL_DRAFTED')&&canWork" @click="openReview(v)">覆核</button>
       </td>
     </tr>
   </table>
@@ -123,7 +153,7 @@ input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-siz
 <!-- 风险 -->
 <div v-if="tab==='findings'" class="card">
   <div class="row" style="margin-bottom:12px">
-    <button class="pri" @click="runRules">运行三条规则</button>
+    <button class="pri" v-if="canWork" @click="runRules">运行三条规则</button>
     <button @click="explainAi" :disabled="!findings.length">AI 解释选中风险</button>
     <select v-model="selFinding" style="max-width:420px">
       <option value="">— 选择 finding —</option>
@@ -140,8 +170,8 @@ input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-siz
       <td>{{ f.explanation }}</td>
       <td><span class="sha">{{ evidenceShort(f) }}</span></td>
       <td>
-        <button @click="dispose(i,'accepted')">属实</button>
-        <button @click="dispose(i,'rejected')">误报</button>
+        <button v-if="canWork" @click="dispose(i,'accepted')">属实</button>
+        <button v-if="canWork" @click="dispose(i,'rejected')">误报</button>
       </td>
     </tr>
   </table>
@@ -170,10 +200,14 @@ input,select{padding:7px 9px;border:1px solid #d5dbe2;border-radius:6px;font-siz
 
 <script>
 const {createApp}=Vue;
+const ROLE_NAMES={admin:'管理员',accountant:'做账员',reviewer:'复核人',viewer:'客户只读'};
 createApp({
   data(){return{
     tab:'inbox',
-    tabs:[{id:'inbox',name:'凭证箱'},{id:'review',name:'覆核'},{id:'journal',name:'分录'},
+    authMode:'',                       // ''=探测中 / local=单机 / multi=多用户
+    me:null,keyInput:'',keyError:'',
+    api_key:localStorage.getItem('zz_api_key')||'',
+    allTabs:[{id:'inbox',name:'凭证箱'},{id:'review',name:'覆核'},{id:'journal',name:'分录'},
           {id:'findings',name:'风险'},{id:'report',name:'报告'}],
     vouchers:[],
     rv:{voucher_id:null,voucher_json:null,edit:{}},
@@ -189,6 +223,22 @@ createApp({
       {path:'voucher_type',label:'凭证类型'}],
   }},
   computed:{
+    role(){
+      if(this.me&&this.me.principal)return this.me.principal.role;
+      if(this.authMode==='local')return 'admin';
+      return null},
+    canWork(){const r=this.role;return r==='admin'||r==='accountant'||r==='reviewer'},
+    isAdmin(){return this.role==='admin'},
+    roleName(){return ROLE_NAMES[this.role]||this.role||''},
+    visibleTabs(){
+      const r=this.role;
+      if(r===null)return [];                        // 多用户模式未登录：不展示工作台页签
+      if(r==='viewer')return this.allTabs.filter(t=>t.id==='report');   // 客户只读：只见报告页
+      return this.allTabs},                          // accountant/reviewer/admin：全功能
+    quotaText(){
+      if(!this.me||!this.me.quota)return '';
+      const q=this.me.quota;
+      return q.unlimited?'∞':((q.reports_used||0)+'/'+q.reports_limit)},
     drCrDiff(){
       const d=this.je.lines.reduce((s,l)=>s+(+l.debit||0),0);
       const c=this.je.lines.reduce((s,l)=>s+(+l.credit||0),0);
@@ -196,13 +246,31 @@ createApp({
     }
   },
   methods:{
-    async req(url,opt){const r=await fetch(url,opt);
+    async req(url,opt){opt=opt||{};
+      opt.headers=Object.assign({'X-API-Key':this.api_key||''},opt.headers||{});
+      const r=await fetch(url,opt);
+      if(r.status===401){this.authMode='multi';this.me=null}   // 会话中 Key 失效 → 弹登录横幅
       const ct=r.headers.get('content-type')||'';
       if(!r.ok){let m='HTTP '+r.status;
         try{if(ct.includes('json')){const j=await r.json();m=j.message||j.detail||m}}catch(e){}
         throw new Error(m)}
       if(ct.includes('json'))return r.json();return r},
-    async refresh(){this.vouchers=await this.req('/v1/vouchers');
+    async loadMe(){
+      try{this.me=await this.req('/v1/me');this.authMode=this.me.auth_mode;this.keyError='';
+        if(!this.visibleTabs.some(t=>t.id===this.tab))
+          this.tab=this.visibleTabs.length?this.visibleTabs[0].id:'report'}
+      catch(e){this.authMode='multi';this.me=null}},          // 401 → 显示登录横幅
+    async saveKey(){
+      this.api_key=this.keyInput.trim();
+      localStorage.setItem('zz_api_key',this.api_key);
+      try{const m=await this.req('/v1/me');
+        this.me=m;this.authMode=m.auth_mode;this.keyError='';this.keyInput='';
+        if(!this.visibleTabs.some(t=>t.id===this.tab))
+          this.tab=this.visibleTabs.length?this.visibleTabs[0].id:'report';
+        this.refresh()}
+      catch(e){this.api_key='';localStorage.removeItem('zz_api_key');
+        this.keyError='Key 无效：'+e.message}},
+    async refresh(){try{this.vouchers=await this.req('/v1/vouchers')}catch(e){}
       try{this.integrity=await this.req('/v1/integrity')}catch(e){}},
     async pickFile(){this.$refs.fileInput.click()},
     async doUpload(ev){const f=ev.target.files[0];if(!f)return;
@@ -252,9 +320,17 @@ createApp({
         body:JSON.stringify({voucher_id:f.voucher_id})})}
       catch(e){alert('AI 助手不可用: '+e.message)}},
     pathGet(obj,path){return path.split('.').reduce((o,k)=>o&&o[k],obj)??null},
-    async dl(u){window.open(u,'_blank')},
+    async dl(u){try{const r=await fetch(u,{headers:{'X-API-Key':this.api_key||''}});
+      if(!r.ok){let m='HTTP '+r.status;
+        try{const j=await r.json();m=j.message||m}catch(e){}
+        throw new Error(m)}
+      const b=await r.blob();
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(b);a.download=u.split('/').pop()||'download';
+      a.click();URL.revokeObjectURL(a.href)}
+      catch(e){alert('导出失败: '+e.message)}},
   },
-  mounted(){this.refresh()}
+  mounted(){this.loadMe();this.refresh()}
 }).mount('#app');
 </script>
 </body>
