@@ -174,7 +174,7 @@ class Database:
             "INSERT INTO subscriptions (id,tenant_id,plan,monthly_report_quota,"
             "quota_period,ocr_quota_monthly,status) VALUES (?,?,?,?,?,?,?)",
             (str(uuid.uuid4()), tenant_id, plan, quota,
-             now.strftime("%Y-%m"), ocr_q))
+             now.strftime("%Y-%m"), ocr_q, "active"))
         return self.ensure_subscription(tenant_id, plan)
 
     def check_and_consume_report_quota(self, tenant_id: str) -> tuple[bool, str]:
