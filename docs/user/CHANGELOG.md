@@ -1,27 +1,118 @@
 # 更新日志（CHANGELOG）
 
-> **上游依据**：[VERSIONING.md](../../VERSIONING.md)（v0.1.0 交付清单）、[README.md](../../README.md) 功能总览、`zhanzhen/` 源码、[LIMITATIONS.md](../../LIMITATIONS.md)。
+> **上游依据**：[VERSIONING.md](../../VERSIONING.md)（v0.3.0 交付清单）、[README.md](../../README.md) 功能总览、`zhanzhen/` 源码、[LIMITATIONS.md](../../LIMITATIONS.md)。
 > **格式**：遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；版本号语义见 SemVer 2.0.0。
 > **读者**：全部用户。技术细节以 ARCHITECTURE.md 与源码为准，本页记录用户可见的能力与变更。
-> **文档版本**：v0.1 · 更新日期：2026-08-25 · 状态：已有
+> **文档版本**：v0.2 · 更新日期：2026-08-25 · 状态：已有
 
 本文档收录**用户可见变更**（DOC_MAP 规划口径）；面向开发者的逐提交细节请看 Git 历史。
 
 ## [Unreleased]
 
-### Added
-
-- 文档批次：[INSTALL](INSTALL.md) / [CONFIG](CONFIG.md) / [USER_GUIDE](USER_GUIDE.md) /
-  [FAQ](FAQ.md) / 本 CHANGELOG / 手机采集[补充检查清单](../MOBILE_WORKFLOW_CHECKLIST.md) /
-  [CONTRIBUTING](../dev/CONTRIBUTING.md) / [TESTING](../dev/TESTING.md) /
-  [SECURITY](../dev/SECURITY.md) / [PRIVACY](../biz/PRIVACY.md) /
-  [CPA_COMPLIANCE](../biz/CPA_COMPLIANCE.md)
-
 _Pending:_
 
-- PaddleOCR adapter 正式接入（图片/扫描件识别）
+- PaddleOCR / PaddleLite 移动端与服务端正式接入（当前为探测位 + 三级降级链路由）
 - Web 端红字冲销入口
 - PDF/docx 模板化导出
+
+---
+
+## [0.3.0] - 2026-08-25
+
+平台化与多受众交付轮。Web 工作台 **UI 全面改版**属 breaking-level 视觉变更，
+按预-1.0 惯例升次版本号。交付清单与路线见 [VERSIONING.md](../../VERSIONING.md)。
+
+### Added
+
+**五受众报告引擎**
+
+- bank / gov / boss / firm / cross 五受众报告模板，jinja2 缺失时纯 Python 兜底渲染；
+  注册会计师免责声明强制出现；boss 版每条风险带 rule_id 保证可追溯
+- `export_report_v2` 接入管线；新增 Web 端点 `POST /v1/exports/report-v2`（audience 类型校验）
+- 五受众模板、免责声明与导出往返均有测试覆盖
+
+**OCR 三级路由**
+
+- 新增 OcrRouter 三级降级链：文字型 PDF→文本层提取、txt→确定性 Stub、
+  图片→Tesseract(chi_sim)→PaddleOCR→引擎全缺时返回明确 NEEDS_SERVER 信封（409），绝不编造数据
+- `POST /v1/vouchers/{id}/ocr` 支持 `router=auto`，响应回显 engine 与 fallback_chain；
+  状态机与事件流保持不变（run_ocr 支持注入 provider_instance）
+- TesseractProvider 懒加载 subprocess 复用既有文本抽取管线；三级选路共 14 个用例
+
+**加密层与数据库双后端（需 `[server]` extra）**
+
+- 服务端加密层：PBKDF2-HMAC-SHA256（200k 轮）派生密钥 → Fernet 对称加密，
+  encrypt_text / decrypt_text；cryptography 未安装时懒加载报可读安装指引而非崩溃
+- Database 双后端：设 `ZZ_DATABASE_URL` 即切 PostgreSQL（psycopg2 懒加载，连接失败可读报错），
+  否则零依赖 SQLite（`ZZ_DB_PATH` 可改路径）；内置 ?↔%s 占位符翻译层与 % 转义
+- report_assets 报告资产（正文/风格样本）先 encrypt_text 再落库；
+  13 个平台用例：加密往返/错钥失败/资产加密落库/sqlite 降级/占位符翻译/quota 不回归等
+
+**DSH 工作流插件分支**
+
+- dsh-plugin 分支承载审计行业 n8n 式七节点工作流引擎（TypeScript workflow-engine.ts）
+  + 基础工作流模板 JSON + zz.workflow.list / zz.workflow.run 工具
+
+**安卓直传双轨**
+
+- 免费轨：手机采集包 `POST /v1/vouchers/capture-batch`，逐张**服务端重算 SHA-256**（不信客户端哈希）；
+  工作台凭证箱新增「采集包导入」按钮，照片直接流入凭证箱
+- 专业轨：大文件分片直传对象存储预签名 URL（`/v1/uploads/initiate`）；双轨口径见
+  [MOBILE_WORKFLOW.md](../MOBILE_WORKFLOW.md)
+
+**Windows 免安装 exe**
+
+- desktop.py 启动器 + PyInstaller 单文件打包（zhanzhen.spec）：双击即启动服务并自动打开浏览器，
+  自动挑空闲端口，数据保存在 exe 同级 data\ 目录；构建指南 [BUILD_WINDOWS.md](BUILD_WINDOWS.md)
+
+**平台计费与管理台**
+
+- 免费/专业两档订阅：额度扣减 / 升降级 / 冻结生命周期（per PRODUCT_TIERS）
+- 角色层 user app 与 admin 分离：免费档本地自动管理员，专业档 API-Key 角色
+  （admin/accountant/reviewer/viewer）
+- 管理台端点（角色门禁）：平台统计 / 订阅管理（升降级·冻结）/ API-Key 签发
+- `GET /v1/me` 当前身份：角色 / 租户 / 订阅状态 / 剩余额度（前端显隐依据）；AuthError 统一 401 信封
+- [SERVER_DEPLOY.md](../../SERVER_DEPLOY.md)：境内合规托管选址、三种部署形态、联调排错工作流
+
+### Changed
+
+- **Web 工作台 UI 全面改版**（breaking-level 视觉变更）：登录横幅（Key→localStorage→X-API-Key）、
+  按角色显隐页签（viewer 仅报告、admin 增加管理台）、顶栏常驻本月报告额度 x/3 或 ∞、
+  品牌色 #0F4C81 + #C9A063
+- pyproject 新增 `[server]` extra（psycopg2-binary + cryptography）
+- 三角不平凭证覆核批准后可继续做账：suggest_entry 追加显式待处理差额行，不篡改提取值
+  （修复长期红着的 e2e 管线测试）
+- 用户/开发/合规文档批量补齐 11 篇并同步 DOC_MAP 状态
+
+### Deprecated
+
+- 无
+
+### Removed
+
+- 无
+
+### Fixed
+
+- report_engine 无 jinja2 环境的 boss 模板兜底渲染两连修（多行 f-string 改纯拼接、rule_id 回显）
+- ensure_subscription 插入语句占位符数量不匹配（7 占位符 6 绑定值）
+
+### Security
+
+- 报告资产落库前 Fernet 加密；数据库连接经 `ZZ_DATABASE_URL` 注入，凭据不落代码
+- 手机采集包逐张服务端重算 SHA-256，客户端哈希仅参考（延续 0.1.0 承诺）
+
+### 配置面速览（本版引入）
+
+| 变量 | 默认 | 说明 |
+|------|------|------|
+| `ZZ_DATABASE_URL` | 空=SQLite | 设置后切换 PostgreSQL 后端（psycopg2 懒加载） |
+| `ZZ_DB_PATH` | `data/zhanzhen.db` | SQLite 库文件路径 |
+| `ZZ_ENC_SALT` | 服务端部署时生成一次并持久化 | 加密层 PBKDF2 盐（见 zhanzhen/crypto.py 说明） |
+| `ZZ_AUTH_MODE` | 不设=本地单机免费模式 | 设 `users` 进入多角色模式 |
+| `ZZ_USERS` | 空 | `key:用户名:角色` 清单，分号分隔 |
+
+逐项作用域与安全提示见 [CONFIG.md](CONFIG.md)。
 
 ---
 
@@ -148,5 +239,6 @@ Phase-0 单机参考实现（首个公开版本）。对应总纲 Phase 0 技术
 扫描件/图片 OCR 未就绪、单租户无登录、并发写未加锁、发票不做联网验真、XLSX 缺依赖时
 降级 CSV。
 
-[Unreleased]: https://github.com/Ya-MiC/zhanzhen/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Ya-MiC/zhanzhen/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Ya-MiC/zhanzhen/releases/tag/v0.3.0
 [0.1.0]: https://github.com/Ya-MiC/zhanzhen/releases/tag/v0.1.0
