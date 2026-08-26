@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>湛箴 · 管理台</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+*{box-sizing:border-box;margin:0}
+body{font-family:"Microsoft YaHei",-apple-system,sans-serif;background:#1a2332;color:#e0e6ed}
+header{background:#0d1520;padding:14px 24px;display:flex;align-items:center;gap:14px;border-bottom:2px solid #c9a063}
+header h1{font-size:17px;color:#c9a063}
+main{max-width:1100px;margin:22px auto;padding:0 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.card{background:#232f42;border-radius:10px;padding:16px}
+.card h3{color:#c9a063;font-size:14px;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 9px;border-bottom:1px solid #33415a;text-align:left}
+th{color:#8fa3bd;font-weight:600}
+button{border:0;border-radius:6px;padding:7px 13px;cursor:pointer;font-size:13px;background:#c9a063;color:#1a2332;font-weight:600}
+input,select{padding:7px 9px;border:1px solid #33415a;border-radius:6px;background:#1a2332;color:#e0e6ed;font-size:13px}
+.big{font-size:26px;font-weight:700;color:#fff}
+.muted{color:#8fa3bd;font-size:12px;margin-top:4px}
+.badge{padding:2px 8px;border-radius:9px;font-size:11px}
+.b-active{background:#1a4731;color:#7ee2a8}.b-frozen{background:#4a2020;color:#ff9090}
+</style>
+</head>
+<body>
+<header><h1>🐙 湛箴 · 管理台（Admin）</h1>
+<span style="flex:1"></span><span style="font-size:12px;color:#8fa3bd">仅管理员角色可见 · /admin</span></header>
+<main>
+<div class="card"><h3>平台总览</h3>
+  <div class="row" id="stats">加载中…</div>
+</div>
+
+<div class="card"><h3>订阅管理</h3>
+  <table id="subs"><tr><th>租户</th><th>套餐</th><th>状态</th><th>报告用量</th><th></th></tr></table>
+  <div style="margin-top:10px" class="row">
+    <input id="newTenant" placeholder="新租户ID" style="width:130px">
+    <select id="newPlan"><option value="free">免费版</option><option value="pro">专业版</option></select>
+    <button onclick="createSub()">开通</button>
+  </div>
+</div>
+
+<div class="card"><h3>用户与角色</h3>
+  <p class="muted" style="margin-bottom:8px">用户端 App 下载后用分配的 API Key 登录；角色决定可见功能。</p>
+  <div class="row">
+    <input id="uName" placeholder="用户名" style="width:100px">
+    <select id="uRole"><option value="accountant">做账员</option><option value="reviewer">复核人</option>
+      <option value="viewer">客户只读</option><option value="admin">管理员</option></select>
+    <button onclick="genKey()">生成 API Key</button>
+  </div>
+  <pre id="keyOut" style="margin-top:8px;color:#7ee2a8;font-size:12px"></pre>
+</div>
+
+<div class="card"><h3>运营数据</h3>
+  <div id="ops" class="muted">加载中…</div>
+</div>
+</main>
+<script>
+const {createApp}=Vue;
+createApp({
+  data(){return{}},
+  methods:{
+  },
+}).mount('#nonexist');
+// 原生 JS 简洁实现
+async function j(url,opt){const r=await fetch(url,opt);if(!r.ok)throw new Error((await r.json().catch(()=>({}))).message||r.status);return r.json()}
+async function refresh(){
+  const s=await j('/v1/admin/stats').catch(()=>null);
+  if(s){
+    document.getElementById('stats').innerHTML=
+      ['companies 企业','projects 项目','vouchers 凭证','entries 分录','users 用户']
+      .map(k=>{const[key]=k.split(' ');return `<div><div class="big">${s.stats[key]??'-'}</div><div class="muted">${k}</div></div>`}).join('');
+  }
+  const subs=await j('/v1/admin/subscriptions').catch(()=>[]);
+  document.getElementById('subs').innerHTML=
+    '<tr><th>租户</th><th>套餐</th><th>状态</th><th>报告用量</th><th></th></tr>'+
+    (Array.isArray(subs)?subs.map(x=>`<tr><td>${x.tenant_id}</td>
+      <td>${x.plan==='pro'?'⭐专业版':'免费版'}</td>
+      <td><span class="badge b-${x.status}">${x.status}</span></td>
+      <td>${x.reports_used_this_month}/${x.monthly_report_quota}</td>
+      <td>${x.plan==='free'?`<button onclick="up('${x.tenant_id}')">升专业</button>`
+        :`<button onclick="down('${x.tenant_id}')">降免费</button>`}</td></tr>`).join(''):'');
+}
+async function up(t){await j('/v1/admin/subscriptions/upgrade',{method:'POST',
+  headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t})});refresh()}
+async function down(t){await j('/v1/admin/subscriptions/downgrade',{method:'POST',
+  headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t})});refresh()}
+async function createSub(){
+  const t=document.getElementById('newTenant').value.trim();
+  const p=document.getElementById('newPlan').value;
+  if(!t)return alert('填租户ID');
+  await j('/v1/admin/subscriptions/create',{method:'POST',
+    headers:{'Content-Type':'application/json'},body:JSON.stringify({tenant_id:t,plan:p})});
+  refresh()}
+function genKey(){
+  const n=document.getElementById('uName').value.trim()||'user';
+  const r=document.getElementById('uRole').value;
+  // MVP：本地生成展示；生产由服务端 POST /v1/admin/users 落库
+  const key='zzk_'+Array.from(crypto.getRandomValues(new Uint8Array(18))).map(b=>b.toString(36)).join('').slice(0,24);
+  document.getElementById('keyOut').textContent=`ZZ_USERS 追加项:
+  ${key}:${n}:${r}
+(发给用户在 App 设置里粘贴即登录)`;
+}
+refresh();setInterval(refresh,30000);
+</script>
+</body>
+</html>
